@@ -8,7 +8,7 @@ export default function Navbar() {
   return (
     <div className="bg-black text-white p-4 flex justify-between">
       <Link to="/">
-        <h1 className="text-2xl font-bold">StreamApp</h1>
+        <h1 className="text-2xl font-bold">Learning App</h1>
       </Link>
 
       <div>
