@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { ensureUserRole } from "../utils/roles.js";
 
 export const protect = async (req, res, next) => {
   try {
@@ -27,7 +28,7 @@ export const protect = async (req, res, next) => {
       });
     }
 
-    req.user = user;
+    req.user = await ensureUserRole(user);
     next();
   } catch (error) {
     return res.status(401).json({

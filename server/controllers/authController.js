@@ -1,6 +1,10 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import {
+  ensureUserRole,
+  resolveRoleForEmail,
+} from "../utils/roles.js";
 
 
 // REGISTER
@@ -17,20 +21,7 @@ export const registerUser = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const adminEmails = (
-      process.env.ADMIN_EMAILS || ""
-    )
-      .split(",")
-      .map((adminEmail) =>
-        adminEmail.trim().toLowerCase()
-      )
-      .filter(Boolean);
-    const userCount = await User.countDocuments();
-    const role =
-      userCount === 0 ||
-      adminEmails.includes(email.toLowerCase())
-        ? "admin"
-        : "user";
+    const role = await resolveRoleForEmail(email);
 
     const user = await User.create({
       name,
@@ -68,6 +59,8 @@ export const loginUser = async (req, res) => {
         message: "Invalid email or password",
       });
     }
+
+    await ensureUserRole(user);
 
     const isMatch = await bcrypt.compare(
       password,

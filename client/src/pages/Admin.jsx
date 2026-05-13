@@ -1,9 +1,21 @@
 /* eslint-disable react-hooks/set-state-in-effect */
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import Navbar from "../components/Navbar";
 
 import API from "../services/api";
+
+const getErrorMessage = (error) => {
+  return (
+    error.response?.data?.message ||
+    error.message ||
+    "Something went wrong"
+  );
+};
 
 export default function Admin() {
 
@@ -13,9 +25,16 @@ export default function Admin() {
     driveFileId: "",
     thumbnail: "",
   };
+  const imgURL="https://imgs.search.brave.com/xInxt8pmooq-7OgbKiGyNJcRnxRKcNQ5i02U56G-ZWo/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvMTQx/Mzk5NzgwNS92ZWN0/b3Ivc29mdHdhcmUt/YXBwbGljYXRpb24t/dGVzdGluZy1jb25j/ZXB0LTNkLWlsbHVz/dHJhdGlvbi5qcGc_/cz02MTJ4NjEyJnc9/MCZrPTIwJmM9ZFll/WFowNzJyaElTWWkx/c3k3R3RONFlXSVox/VnBYRnhXQXppcTFx/QTI3cz0"
 
   const [videos, setVideos] =
     useState([]);
+
+  const [isLoadingVideos, setIsLoadingVideos] =
+    useState(true);
+
+  const [videosError, setVideosError] =
+    useState("");
 
   const [editingVideoId, setEditingVideoId] =
     useState(null);
@@ -30,22 +49,27 @@ export default function Admin() {
     useState("");
 
   const [thumbnail, setThumbnail] =
-    useState("");
+    useState(imgURL);
 
-  async function fetchVideos() {
+  const fetchVideos = useCallback(async () => {
     try {
+      setIsLoadingVideos(true);
+      setVideosError("");
+
       const { data } = await API.get("/videos");
 
       setVideos(data);
     } catch (error) {
       console.log(error);
-      alert("Failed to load videos");
+      setVideosError(getErrorMessage(error));
+    } finally {
+      setIsLoadingVideos(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     fetchVideos();
-  }, []);
+  }, [fetchVideos]);
 
   const resetForm = () => {
     setTitle(emptyForm.title);
@@ -89,7 +113,7 @@ export default function Admin() {
 
       console.log(error);
 
-      alert("Failed");
+      alert(getErrorMessage(error));
     }
   };
 
@@ -120,7 +144,7 @@ export default function Admin() {
       fetchVideos();
     } catch (error) {
       console.log(error);
-      alert("Delete failed");
+      alert(getErrorMessage(error));
     }
   };
 
@@ -130,11 +154,98 @@ export default function Admin() {
 
       <Navbar />
 
-      <div className="grid gap-8 p-6 lg:grid-cols-[420px_1fr]">
+      <div className="p-6">
+
+        <div className="mb-8">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 className="text-3xl font-bold">
+              Manage Content
+            </h2>
+
+            <button
+              type="button"
+              onClick={fetchVideos}
+              className="rounded bg-gray-800 px-4 py-2 font-semibold"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {isLoadingVideos && (
+            <p className="text-gray-400">
+              Loading videos...
+            </p>
+          )}
+
+          {videosError && (
+            <p className="rounded bg-red-950 p-3 text-red-200">
+              {videosError}
+            </p>
+          )}
+
+          {!isLoadingVideos &&
+            !videosError &&
+            videos.length === 0 && (
+              <p className="text-gray-400">
+                No videos added yet. Add a video below,
+                then it will appear here with Edit and
+                Delete buttons.
+              </p>
+            )}
+
+          <div className="grid gap-4">
+            {videos.map((video) => (
+              <div
+                key={video._id}
+                className="grid gap-4 bg-gray-900 p-4 rounded-xl md:grid-cols-[140px_1fr_180px]"
+              >
+                <img
+                  src={video.thumbnail}
+                  alt={video.title}
+                  className="h-[90px] w-full rounded object-cover md:w-[140px]"
+                />
+
+                <div>
+                  <h3 className="text-xl font-semibold">
+                    {video.title}
+                  </h3>
+
+                  <p className="mt-2 text-gray-400">
+                    {video.description}
+                  </p>
+
+                  <p className="mt-2 break-all text-sm text-gray-500">
+                    Drive ID: {video.driveFileId}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-1 md:content-center">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(video)}
+                    className="rounded bg-blue-600 px-4 py-3 font-semibold"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDelete(video._id)
+                    }
+                    className="rounded bg-red-700 px-4 py-3 font-semibold"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-gray-900 p-6 rounded-xl"
+          className="mx-auto max-w-xl bg-gray-900 p-6 rounded-xl"
         >
 
           <h1 className="text-3xl font-bold mb-6">
@@ -201,67 +312,6 @@ export default function Admin() {
           )}
 
         </form>
-
-        <div>
-          <h2 className="text-3xl font-bold mb-6">
-            Manage Content
-          </h2>
-
-          <div className="grid gap-4">
-            {videos.map((video) => (
-              <div
-                key={video._id}
-                className="grid gap-4 bg-gray-900 p-4 rounded-xl md:grid-cols-[140px_1fr_auto]"
-              >
-                <img
-                  src={video.thumbnail}
-                  alt={video.title}
-                  className="h-[90px] w-full rounded object-cover md:w-[140px]"
-                />
-
-                <div>
-                  <h3 className="text-xl font-semibold">
-                    {video.title}
-                  </h3>
-
-                  <p className="mt-2 text-gray-400">
-                    {video.description}
-                  </p>
-
-                  <p className="mt-2 text-sm text-gray-500">
-                    Drive ID: {video.driveFileId}
-                  </p>
-                </div>
-
-                <div className="flex gap-3 md:flex-col md:justify-center">
-                  <button
-                    type="button"
-                    onClick={() => handleEdit(video)}
-                    className="rounded bg-blue-600 px-4 py-2 font-semibold"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleDelete(video._id)
-                    }
-                    className="rounded bg-red-700 px-4 py-2 font-semibold"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {videos.length === 0 && (
-              <p className="text-gray-400">
-                No videos added yet.
-              </p>
-            )}
-          </div>
-        </div>
 
       </div>
 
