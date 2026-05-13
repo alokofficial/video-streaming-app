@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
-  const { token, logout } = useAuth();
+  const { token, isAdmin, logout } = useAuth();
 
   return (
     <div className="bg-black text-white p-4 flex justify-between">
@@ -20,7 +20,9 @@ export default function Navbar() {
           </div>
         ) : (
           <div className="flex gap-4">
-            <Link to="/admin">Admin</Link>
+            {isAdmin && (
+              <Link to="/admin">Admin</Link>
+            )}
 
             <button onClick={logout}>Logout</button>
           </div>

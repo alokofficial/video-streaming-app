@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react";
 
 import { Link } from "react-router-dom";
@@ -9,11 +10,7 @@ import API from "../services/api";
 export default function Home() {
   const [videos, setVideos] = useState([]);
 
-  useEffect(() => {
-    fetchVideos();
-  }, []);
-
-  const fetchVideos = async () => {
+  async function fetchVideos() {
     try {
       const { data } = await API.get("/videos");
 
@@ -23,7 +20,11 @@ export default function Home() {
     } catch (error) {
       console.log(error);
     }
-  };
+  }
+
+  useEffect(() => {
+    fetchVideos();
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white">

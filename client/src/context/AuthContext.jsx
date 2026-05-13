@@ -1,7 +1,7 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useContext,
-  useEffect,
   useState,
 } from "react";
 
@@ -13,27 +13,45 @@ export const AuthProvider = ({ children }) => {
     localStorage.getItem("token")
   );
 
-  const login = (newToken) => {
+  const [user, setUser] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+
+    return storedUser
+      ? JSON.parse(storedUser)
+      : null;
+  });
+
+  const login = (newToken, currentUser) => {
 
     localStorage.setItem(
       "token",
       newToken
     );
 
+    localStorage.setItem(
+      "user",
+      JSON.stringify(currentUser)
+    );
+
     setToken(newToken);
+    setUser(currentUser);
   };
 
   const logout = () => {
 
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
 
     setToken(null);
+    setUser(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
         token,
+        user,
+        isAdmin: user?.role === "admin",
         login,
         logout,
       }}

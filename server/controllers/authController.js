@@ -17,16 +17,36 @@ export const registerUser = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const adminEmails = (
+      process.env.ADMIN_EMAILS || ""
+    )
+      .split(",")
+      .map((adminEmail) =>
+        adminEmail.trim().toLowerCase()
+      )
+      .filter(Boolean);
+    const userCount = await User.countDocuments();
+    const role =
+      userCount === 0 ||
+      adminEmails.includes(email.toLowerCase())
+        ? "admin"
+        : "user";
 
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
+      role,
     });
 
     res.status(201).json({
       message: "User registered successfully",
-      user,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -63,6 +83,7 @@ export const loginUser = async (req, res) => {
     const token = jwt.sign(
       {
         id: user._id,
+        role: user.role,
       },
       process.env.JWT_SECRET,
       {
@@ -76,6 +97,7 @@ export const loginUser = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
 

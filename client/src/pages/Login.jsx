@@ -30,7 +30,7 @@ export default function Login() {
         }
       );
 
-      login(data.token);
+      login(data.token, data.user);
 
       alert("Login Successful");
 

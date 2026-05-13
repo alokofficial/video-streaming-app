@@ -165,3 +165,84 @@ export const addVideo = async (
     });
   }
 };
+
+
+// UPDATE VIDEO
+export const updateVideo = async (
+  req,
+  res
+) => {
+
+  try {
+
+    const {
+      title,
+      description,
+      driveFileId,
+      thumbnail,
+    } = req.body;
+
+    const video = await Video.findByIdAndUpdate(
+      req.params.id,
+      {
+        title,
+        description,
+        driveFileId,
+        thumbnail,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!video) {
+      return res.status(404).json({
+        message: "Video not found",
+      });
+    }
+
+    res.json(video);
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+
+// DELETE VIDEO
+export const deleteVideo = async (
+  req,
+  res
+) => {
+
+  try {
+
+    const video = await Video.findByIdAndDelete(
+      req.params.id
+    );
+
+    if (!video) {
+      return res.status(404).json({
+        message: "Video not found",
+      });
+    }
+
+    res.json({
+      message: "Video deleted successfully",
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
