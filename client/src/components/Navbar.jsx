@@ -1,9 +1,17 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const { token, user, isAdmin, logout } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] =
+    useState(false);
+
+  const handleLogout = () => {
+    setIsMenuOpen(false);
+    logout();
+  };
 
   return (
     <div className="bg-black text-white p-4 flex justify-between">
@@ -19,20 +27,89 @@ export default function Navbar() {
             <Link to="/register">Register</Link>
           </div>
         ) : (
-          <div className="flex items-center gap-4">
+          <div className="relative flex items-center gap-4">
             {isAdmin && (
               <Link to="/admin">Admin</Link>
             )}
 
-            <span className="text-sm text-gray-300">
-              {user?.name}
-            </span>
+            <button
+              type="button"
+              onClick={() =>
+                setIsMenuOpen((current) => !current)
+              }
+              className="flex flex-col items-center gap-1 rounded px-2 py-1 hover:bg-gray-900"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-6 w-6"
+                  fill="currentColor"
+                >
+                  <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5Zm0 2c-3.31 0-10 1.66-10 5v2h20v-2c0-3.34-6.69-5-10-5Z" />
+                </svg>
+              </span>
 
-            <button onClick={logout}>Logout</button>
+              <span className="max-w-[120px] truncate text-xs text-gray-300">
+                {user?.name}
+              </span>
+            </button>
+
+            {isMenuOpen && (
+              <div className="absolute right-0 top-16 z-20 w-72 rounded-lg border border-gray-800 bg-gray-950 p-4 shadow-xl">
+                <div className="mb-4 border-b border-gray-800 pb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-800">
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        className="h-7 w-7"
+                        fill="currentColor"
+                      >
+                        <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5Zm0 2c-3.31 0-10 1.66-10 5v2h20v-2c0-3.34-6.69-5-10-5Z" />
+                      </svg>
+                    </span>
+
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">
+                        {user?.name}
+                      </p>
+
+                      <p className="truncate text-sm text-gray-400">
+                        {user?.email}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Link
+                    to="/profile"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="rounded px-3 py-2 hover:bg-gray-900"
+                  >
+                    User Profile
+                  </Link>
+
+                  <Link
+                    to="/change-password"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="rounded px-3 py-2 hover:bg-gray-900"
+                  >
+                    Change Password
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="rounded px-3 py-2 text-left hover:bg-gray-900"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          // <button onClick={logout}>
-          //   Logout
-          // </button>
         )}
       </div>
     </div>
