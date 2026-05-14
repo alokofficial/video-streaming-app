@@ -20,7 +20,8 @@ export default function VideoPlayer() {
 
           <video
             controls
-            autoPlay
+            playsInline
+            preload="metadata"
             className="w-full rounded-xl"
             src={`${import.meta.env.VITE_API_URL}/videos/stream/${fileId}?token=${encodeURIComponent(token)}`}
           />

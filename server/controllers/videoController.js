@@ -119,27 +119,7 @@ export const streamVideo = async (
 
     const range = req.headers.range;
 
-    if (!range) {
-
-      return res.status(400).send(
-        "Requires Range header"
-      );
-    }
-
     const CHUNK_SIZE = 10 ** 6;
-
-    const start = Number(
-      range.replace(/\D/g, "")
-    );
-
-    const end = Math.min(
-      start + CHUNK_SIZE,
-      fileSize - 1
-    );
-
-    const contentLength =
-      end - start + 1;
-
 
     // IMPORTANT CORS HEADERS
     res.setHeader(
@@ -156,6 +136,59 @@ export const streamVideo = async (
       "Access-Control-Expose-Headers",
       "Content-Range, Accept-Ranges, Content-Length"
     );
+
+    if (!range) {
+      res.writeHead(200, {
+        "Accept-Ranges": "bytes",
+        "Content-Length": fileSize,
+        "Content-Type": metadata.data.mimeType,
+      });
+
+      const response =
+        await driveService.files.get(
+          {
+            fileId,
+            alt: "media",
+          },
+          {
+            responseType: "stream",
+          }
+        );
+
+      response.data.pipe(res);
+      return;
+    }
+
+    const rangeMatch = range.match(
+      /bytes=(\d*)-(\d*)/
+    );
+
+    if (!rangeMatch) {
+      return res.status(416).send(
+        "Invalid Range header"
+      );
+    }
+
+    const requestedStart = rangeMatch[1]
+      ? Number(rangeMatch[1])
+      : 0;
+    const requestedEnd = rangeMatch[2]
+      ? Number(rangeMatch[2])
+      : requestedStart + CHUNK_SIZE;
+
+    const start = Math.min(
+      requestedStart,
+      fileSize - 1
+    );
+
+    const end = Math.min(
+      requestedEnd,
+      start + CHUNK_SIZE,
+      fileSize - 1
+    );
+
+    const contentLength =
+      end - start + 1;
 
 
     // VIDEO HEADERS
