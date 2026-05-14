@@ -24,6 +24,7 @@ export default function Admin() {
     description: "",
     driveFileId: "",
     thumbnail: "",
+    allowedEmails: "",
   };
   const imgURL="https://imgs.search.brave.com/xInxt8pmooq-7OgbKiGyNJcRnxRKcNQ5i02U56G-ZWo/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvMTQx/Mzk5NzgwNS92ZWN0/b3Ivc29mdHdhcmUt/YXBwbGljYXRpb24t/dGVzdGluZy1jb25j/ZXB0LTNkLWlsbHVz/dHJhdGlvbi5qcGc_/cz02MTJ4NjEyJnc9/MCZrPTIwJmM9ZFll/WFowNzJyaElTWWkx/c3k3R3RONFlXSVox/VnBYRnhXQXppcTFx/QTI3cz0"
 
@@ -51,6 +52,9 @@ export default function Admin() {
   const [thumbnail, setThumbnail] =
     useState(imgURL);
 
+  const [allowedEmails, setAllowedEmails] =
+    useState("");
+
   const fetchVideos = useCallback(async () => {
     try {
       setIsLoadingVideos(true);
@@ -76,7 +80,17 @@ export default function Admin() {
     setDescription(emptyForm.description);
     setDriveFileId(emptyForm.driveFileId);
     setThumbnail(emptyForm.thumbnail);
+    setAllowedEmails(emptyForm.allowedEmails);
     setEditingVideoId(null);
+  };
+
+  const parseAllowedEmails = () => {
+    return allowedEmails
+      .split(/[,\n]/)
+      .map((email) =>
+        email.trim().toLowerCase()
+      )
+      .filter(Boolean);
   };
 
 
@@ -91,6 +105,7 @@ export default function Admin() {
         description,
         driveFileId,
         thumbnail,
+        allowedEmails: parseAllowedEmails(),
       };
 
       if (editingVideoId) {
@@ -123,6 +138,9 @@ export default function Admin() {
     setDescription(video.description || "");
     setDriveFileId(video.driveFileId);
     setThumbnail(video.thumbnail || "");
+    setAllowedEmails(
+      (video.allowedEmails || []).join(", ")
+    );
   };
 
   const handleDelete = async (videoId) => {
@@ -217,6 +235,13 @@ export default function Admin() {
                   <p className="mt-2 break-all text-sm text-gray-500">
                     Drive ID: {video.driveFileId}
                   </p>
+
+                  <p className="mt-2 break-all text-sm text-gray-500">
+                    Visible to:{" "}
+                    {video.allowedEmails?.length
+                      ? video.allowedEmails.join(", ")
+                      : "All logged-in users"}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-1 md:content-center">
@@ -290,6 +315,15 @@ export default function Admin() {
             value={thumbnail}
             onChange={(e) =>
               setThumbnail(e.target.value)
+            }
+          />
+
+          <textarea
+            placeholder="Visible to email IDs. Leave blank for all users."
+            className="w-full p-3 mb-4 bg-gray-800 rounded"
+            value={allowedEmails}
+            onChange={(e) =>
+              setAllowedEmails(e.target.value)
             }
           />
 

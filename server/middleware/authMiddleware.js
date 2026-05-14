@@ -5,14 +5,20 @@ import { ensureUserRole } from "../utils/roles.js";
 export const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    const queryToken = req.query.token;
 
-    if (!authHeader?.startsWith("Bearer ")) {
+    if (
+      !authHeader?.startsWith("Bearer ") &&
+      !queryToken
+    ) {
       return res.status(401).json({
         message: "Not authorized, no token",
       });
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : queryToken;
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET

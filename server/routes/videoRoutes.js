@@ -14,7 +14,7 @@ import {
 
 const router = express.Router();
 
-router.get("/", getVideos);
+router.get("/", protect, getVideos);
 
 router.post(
   "/",
@@ -39,6 +39,7 @@ router.delete(
 
 router.get(
   "/stream/:fileId",
+  protect,
   streamVideo
 );
 

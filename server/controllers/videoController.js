@@ -2,6 +2,38 @@ import Video from "../models/Video.js";
 
 import driveService from "../config/googleDrive.js";
 
+const normalizeEmailList = (emails) => {
+  const emailList = Array.isArray(emails)
+    ? emails
+    : String(emails || "").split(/[,\n]/);
+
+  return [
+    ...new Set(
+      emailList
+        .map((email) =>
+          email.trim().toLowerCase()
+        )
+        .filter(Boolean)
+    ),
+  ];
+};
+
+const canViewVideo = (user, video) => {
+  if (user.role === "admin") {
+    return true;
+  }
+
+  const allowedEmails = video.allowedEmails || [];
+
+  if (allowedEmails.length === 0) {
+    return true;
+  }
+
+  return allowedEmails.includes(
+    user.email.toLowerCase()
+  );
+};
+
 
 // GET ALL VIDEOS
 export const getVideos = async (
@@ -11,7 +43,31 @@ export const getVideos = async (
 
   try {
 
-    const videos = await Video.find();
+    const query =
+      req.user.role === "admin"
+        ? {}
+        : {
+            $or: [
+              {
+                allowedEmails: {
+                  $exists: false,
+                },
+              },
+              {
+                allowedEmails: {
+                  $size: 0,
+                },
+              },
+              {
+                allowedEmails:
+                  req.user.email.toLowerCase(),
+              },
+            ],
+          };
+
+    const videos = await Video.find(query).sort({
+      createdAt: -1,
+    });
 
     res.json(videos);
 
@@ -33,6 +89,22 @@ export const streamVideo = async (
   try {
 
     const { fileId } = req.params;
+
+    const video = await Video.findOne({
+      driveFileId: fileId,
+    });
+
+    if (!video) {
+      return res.status(404).json({
+        message: "Video not found",
+      });
+    }
+
+    if (!canViewVideo(req.user, video)) {
+      return res.status(403).json({
+        message: "You do not have access to this video",
+      });
+    }
 
     // Get file metadata
     const metadata =
@@ -145,6 +217,7 @@ export const addVideo = async (
       description,
       driveFileId,
       thumbnail,
+      allowedEmails,
     } = req.body;
 
     const video = await Video.create({
@@ -152,6 +225,8 @@ export const addVideo = async (
       description,
       driveFileId,
       thumbnail,
+      allowedEmails:
+        normalizeEmailList(allowedEmails),
     });
 
     res.status(201).json(video);
@@ -180,6 +255,7 @@ export const updateVideo = async (
       description,
       driveFileId,
       thumbnail,
+      allowedEmails,
     } = req.body;
 
     const video = await Video.findByIdAndUpdate(
@@ -189,6 +265,8 @@ export const updateVideo = async (
         description,
         driveFileId,
         thumbnail,
+        allowedEmails:
+          normalizeEmailList(allowedEmails),
       },
       {
         new: true,

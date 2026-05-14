@@ -19,6 +19,11 @@ const videoSchema = new mongoose.Schema(
     thumbnail: {
       type: String,
     },
+
+    allowedEmails: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,

@@ -1,10 +1,12 @@
 import { useParams } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
+import { useAuth } from "../context/AuthContext";
 
 export default function VideoPlayer() {
 
   const { fileId } = useParams();
+  const { token } = useAuth();
 
   return (
 
@@ -20,7 +22,7 @@ export default function VideoPlayer() {
             controls
             autoPlay
             className="w-full rounded-xl"
-            src={`${import.meta.env.VITE_API_URL}/videos/stream/${fileId}`}
+            src={`${import.meta.env.VITE_API_URL}/videos/stream/${fileId}?token=${encodeURIComponent(token)}`}
           />
 
         </div>
