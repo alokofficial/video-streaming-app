@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Video from "../models/Video.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import {
@@ -28,9 +29,22 @@ export const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       role,
+      lastLoginAt: new Date(),
     });
 
+    const token = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      }
+    );
+
     res.status(201).json({
+      token,
       message: "User registered successfully",
       user: {
         id: user._id,
@@ -73,6 +87,9 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    user.lastLoginAt = new Date();
+    await user.save();
+
     const token = jwt.sign(
       {
         id: user._id,
@@ -94,6 +111,89 @@ export const loginUser = async (req, res) => {
       },
     });
 
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+
+// GET USERS FOR ADMIN
+export const getUsers = async (req, res) => {
+  try {
+    const users = await User.find()
+      .select("-password")
+      .sort({
+        createdAt: -1,
+      });
+
+    const videos = await Video.find().select(
+      "allowedEmails"
+    );
+
+    const totalVideos = videos.length;
+
+    const usersWithAccessCount = users.map((user) => {
+      const email = user.email.toLowerCase();
+      const accessibleVideos =
+        user.role === "admin"
+          ? totalVideos
+          : videos.filter((video) => {
+              const allowedEmails =
+                video.allowedEmails || [];
+
+              return (
+                allowedEmails.length === 0 ||
+                allowedEmails.includes(email)
+              );
+            }).length;
+
+      return {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+        lastLoginAt: user.lastLoginAt,
+        accessibleVideos,
+      };
+    });
+
+    res.json(usersWithAccessCount);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+
+// DELETE USER FOR ADMIN
+export const deleteUser = async (req, res) => {
+  try {
+    if (
+      req.params.id === req.user._id.toString()
+    ) {
+      return res.status(400).json({
+        message:
+          "You cannot delete your own account while logged in",
+      });
+    }
+
+    const user = await User.findByIdAndDelete(
+      req.params.id
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      message: "User deleted successfully",
+    });
   } catch (error) {
     res.status(500).json({
       message: error.message,

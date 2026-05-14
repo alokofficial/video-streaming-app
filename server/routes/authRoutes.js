@@ -4,13 +4,30 @@ import {
   registerUser,
   loginUser,
   changePassword,
+  getUsers,
+  deleteUser,
 } from "../controllers/authController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import {
+  protect,
+  authorizeRoles,
+} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.put("/change-password", protect, changePassword);
+router.get(
+  "/users",
+  protect,
+  authorizeRoles("admin"),
+  getUsers
+);
+router.delete(
+  "/users/:id",
+  protect,
+  authorizeRoles("admin"),
+  deleteUser
+);
 
 export default router;

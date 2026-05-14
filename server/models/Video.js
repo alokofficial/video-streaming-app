@@ -1,19 +1,33 @@
 import mongoose from "mongoose";
 
+const countLetters = (value = "") => {
+  return String(value).trim().length;
+};
+
+const maxLettersValidator = (maxLetters) => ({
+  validator(value) {
+    return countLetters(value) <= maxLetters;
+  },
+  message: `Maximum ${maxLetters} letters allowed`,
+});
+
 const videoSchema = new mongoose.Schema(
   {
     title: {
       type: String,
       required: true,
+      validate: maxLettersValidator(65),
     },
 
     description: {
       type: String,
+      validate: maxLettersValidator(150),
     },
 
     driveFileId: {
       type: String,
       required: true,
+      validate: maxLettersValidator(100),
     },
 
     thumbnail: {
@@ -35,6 +49,7 @@ const videoSchema = new mongoose.Schema(
           driveFileId: {
             type: String,
             required: true,
+            validate: maxLettersValidator(100),
           },
         },
       ],

@@ -8,6 +8,7 @@ import {
 import Navbar from "../components/Navbar";
 
 import API from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const getErrorMessage = (error) => {
   return (
@@ -17,7 +18,26 @@ const getErrorMessage = (error) => {
   );
 };
 
+const formatDate = (date) => {
+  if (!date) {
+    return "Never";
+  }
+
+  return new Date(date).toLocaleString();
+};
+
+const countLetters = (value = "") => {
+  return value.trim().length;
+};
+
+const fieldLimits = {
+  title: 65,
+  description: 150,
+  driveFileId: 100,
+};
+
 export default function Admin() {
+  const { user: currentUser } = useAuth();
 
   const emptyForm = {
     title: "",
@@ -36,6 +56,15 @@ export default function Admin() {
     useState(true);
 
   const [videosError, setVideosError] =
+    useState("");
+
+  const [users, setUsers] =
+    useState([]);
+
+  const [isLoadingUsers, setIsLoadingUsers] =
+    useState(true);
+
+  const [usersError, setUsersError] =
     useState("");
 
   const [editingVideoId, setEditingVideoId] =
@@ -75,9 +104,26 @@ export default function Admin() {
     }
   }, []);
 
+  const fetchUsers = useCallback(async () => {
+    try {
+      setIsLoadingUsers(true);
+      setUsersError("");
+
+      const { data } = await API.get("/auth/users");
+
+      setUsers(data);
+    } catch (error) {
+      console.log(error);
+      setUsersError(getErrorMessage(error));
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchVideos();
-  }, [fetchVideos]);
+    fetchUsers();
+  }, [fetchVideos, fetchUsers]);
 
   const resetForm = () => {
     setTitle(emptyForm.title);
@@ -118,12 +164,56 @@ export default function Admin() {
       );
   };
 
+  const validateForm = () => {
+    const titleLetters = countLetters(title);
+    const descriptionLetters =
+      countLetters(description);
+    const driveFileIdLetters =
+      countLetters(driveFileId);
+
+    if (titleLetters > fieldLimits.title) {
+      return `Video title can be maximum ${fieldLimits.title} letters`;
+    }
+
+    if (
+      descriptionLetters >
+      fieldLimits.description
+    ) {
+      return `Description can be maximum ${fieldLimits.description} letters`;
+    }
+
+    if (
+      driveFileIdLetters >
+      fieldLimits.driveFileId
+    ) {
+      return `Google Drive File ID can be maximum ${fieldLimits.driveFileId} letters`;
+    }
+
+    const invalidQuality = parseQualities().find(
+      (quality) =>
+        countLetters(quality.driveFileId) >
+        fieldLimits.driveFileId
+    );
+
+    if (invalidQuality) {
+      return `Quality file ID for ${invalidQuality.label} can be maximum ${fieldLimits.driveFileId} letters`;
+    }
+
+    return "";
+  };
+
 
   const handleSubmit = async (e) => {
 
     e.preventDefault();
 
     try {
+      const validationError = validateForm();
+
+      if (validationError) {
+        alert(validationError);
+        return;
+      }
 
       const payload = {
         title,
@@ -149,6 +239,7 @@ export default function Admin() {
 
       resetForm();
       fetchVideos();
+      fetchUsers();
 
     } catch (error) {
 
@@ -194,6 +285,25 @@ export default function Admin() {
       }
 
       fetchVideos();
+      fetchUsers();
+    } catch (error) {
+      console.log(error);
+      alert(getErrorMessage(error));
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    const confirmed = window.confirm(
+      `Delete user ${user.email}?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await API.delete(`/auth/users/${user.id}`);
+      fetchUsers();
     } catch (error) {
       console.log(error);
       alert(getErrorMessage(error));
@@ -207,6 +317,115 @@ export default function Admin() {
       <Navbar />
 
       <div className="p-6">
+
+        <div className="mb-8">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 className="text-3xl font-bold">
+              Manage Users
+            </h2>
+
+            <button
+              type="button"
+              onClick={fetchUsers}
+              className="rounded bg-gray-800 px-4 py-2 font-semibold"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {isLoadingUsers && (
+            <p className="text-gray-400">
+              Loading users...
+            </p>
+          )}
+
+          {usersError && (
+            <p className="rounded bg-red-950 p-3 text-red-200">
+              {usersError}
+            </p>
+          )}
+
+          {!isLoadingUsers &&
+            !usersError &&
+            users.length === 0 && (
+              <p className="text-gray-400">
+                No users registered yet.
+              </p>
+            )}
+
+          {users.length > 0 && (
+            <div className="overflow-x-auto rounded-xl bg-gray-900">
+              <table className="w-full min-w-[760px] text-left text-sm">
+                <thead className="bg-gray-800 text-gray-300">
+                  <tr>
+                    <th className="p-4">User</th>
+                    <th className="p-4">Email</th>
+                    <th className="p-4">Role</th>
+                    <th className="p-4">
+                      Accessible Videos
+                    </th>
+                    <th className="p-4">Last Login</th>
+                    <th className="p-4">Joined</th>
+                    <th className="p-4">Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {users.map((user) => (
+                    <tr
+                      key={user.id}
+                      className="border-t border-gray-800"
+                    >
+                      <td className="p-4">
+                        <button
+                          type="button"
+                          className="flex items-center gap-3 rounded-full bg-gray-800 px-3 py-2 text-left font-semibold transition hover:bg-gray-700"
+                        >
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm uppercase">
+                            {user.name?.charAt(0) ||
+                              "U"}
+                          </span>
+                          <span className="max-w-[160px] truncate">
+                            {user.name}
+                          </span>
+                        </button>
+                      </td>
+                      <td className="p-4 text-gray-300">
+                        {user.email}
+                      </td>
+                      <td className="p-4 capitalize text-gray-300">
+                        {user.role}
+                      </td>
+                      <td className="p-4 text-gray-300">
+                        {user.accessibleVideos}
+                      </td>
+                      <td className="p-4 text-gray-300">
+                        {formatDate(user.lastLoginAt)}
+                      </td>
+                      <td className="p-4 text-gray-300">
+                        {formatDate(user.createdAt)}
+                      </td>
+                      <td className="p-4">
+                        <button
+                          type="button"
+                          disabled={
+                            user.id === currentUser?.id
+                          }
+                          onClick={() =>
+                            handleDeleteUser(user)
+                          }
+                          className="rounded bg-red-700 px-3 py-2 font-semibold disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
         <div className="mb-8">
           <div className="mb-4 flex items-center justify-between gap-4">
@@ -328,31 +547,42 @@ export default function Admin() {
           <input
             type="text"
             placeholder="Video Title"
-            className="w-full p-3 mb-4 bg-gray-800 rounded"
+            className="w-full p-3 bg-gray-800 rounded"
             value={title}
             onChange={(e) =>
               setTitle(e.target.value)
             }
           />
+          <p className="mb-4 mt-1 text-sm text-gray-400">
+            {countLetters(title)} / {fieldLimits.title} letters
+          </p>
 
           <textarea
             placeholder="Description"
-            className="w-full p-3 mb-4 bg-gray-800 rounded"
+            className="w-full p-3 bg-gray-800 rounded"
             value={description}
             onChange={(e) =>
               setDescription(e.target.value)
             }
           />
+          <p className="mb-4 mt-1 text-sm text-gray-400">
+            {countLetters(description)} /{" "}
+            {fieldLimits.description} letters
+          </p>
 
           <input
             type="text"
             placeholder="Google Drive File ID"
-            className="w-full p-3 mb-4 bg-gray-800 rounded"
+            className="w-full p-3 bg-gray-800 rounded"
             value={driveFileId}
             onChange={(e) =>
               setDriveFileId(e.target.value)
             }
           />
+          <p className="mb-4 mt-1 text-sm text-gray-400">
+            {countLetters(driveFileId)} /{" "}
+            {fieldLimits.driveFileId} letters
+          </p>
 
           <input
             type="text"

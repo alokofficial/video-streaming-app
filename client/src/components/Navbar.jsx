@@ -1,12 +1,50 @@
-import { Link } from "react-router-dom";
-import { useState } from "react";
+import {
+  Link,
+  useLocation,
+} from "react-router-dom";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const { token, user, isAdmin, logout } = useAuth();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] =
     useState(false);
+
+  const headerTitle = useMemo(() => {
+    if (!token) {
+      return "Learning App";
+    }
+
+    if (location.pathname === "/admin") {
+      return "Admin Dashboard";
+    }
+
+    if (location.pathname === "/profile") {
+      return "User Profile";
+    }
+
+    if (location.pathname === "/change-password") {
+      return "Account Security";
+    }
+
+    if (location.pathname.startsWith("/watch")) {
+      return "Now Watching";
+    }
+
+    return isAdmin
+      ? `Welcome, ${user?.name || "Admin"}`
+      : `My Library`;
+  }, [isAdmin, location.pathname, token, user?.name]);
+
+  useEffect(() => {
+    document.title = headerTitle;
+  }, [headerTitle]);
 
   const handleLogout = () => {
     setIsMenuOpen(false);
@@ -14,9 +52,14 @@ export default function Navbar() {
   };
 
   return (
-    <div className="bg-black text-white p-4 flex justify-between">
-      <Link to="/">
-        <h1 className="text-2xl font-bold">Learning App</h1>
+    <div className="bg-black text-white p-4 flex justify-between gap-4">
+      <Link to="/" className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-400">
+          Learning App
+        </p>
+        <h1 className="truncate text-2xl font-bold">
+          {headerTitle}
+        </h1>
       </Link>
 
       <div>
@@ -29,7 +72,12 @@ export default function Navbar() {
         ) : (
           <div className="relative flex items-center gap-4">
             {isAdmin && (
-              <Link to="/admin">Admin</Link>
+              <Link
+                to="/admin"
+                className="rounded bg-gray-900 px-3 py-2 font-semibold hover:bg-gray-800"
+              >
+                Admin
+              </Link>
             )}
 
             <button
