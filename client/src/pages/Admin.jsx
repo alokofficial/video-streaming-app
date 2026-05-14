@@ -25,6 +25,7 @@ export default function Admin() {
     driveFileId: "",
     thumbnail: "",
     allowedEmails: "",
+    qualities: "",
   };
   const imgURL="https://imgs.search.brave.com/xInxt8pmooq-7OgbKiGyNJcRnxRKcNQ5i02U56G-ZWo/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvMTQx/Mzk5NzgwNS92ZWN0/b3Ivc29mdHdhcmUt/YXBwbGljYXRpb24t/dGVzdGluZy1jb25j/ZXB0LTNkLWlsbHVz/dHJhdGlvbi5qcGc_/cz02MTJ4NjEyJnc9/MCZrPTIwJmM9ZFll/WFowNzJyaElTWWkx/c3k3R3RONFlXSVox/VnBYRnhXQXppcTFx/QTI3cz0"
 
@@ -55,6 +56,9 @@ export default function Admin() {
   const [allowedEmails, setAllowedEmails] =
     useState("");
 
+  const [qualities, setQualities] =
+    useState("");
+
   const fetchVideos = useCallback(async () => {
     try {
       setIsLoadingVideos(true);
@@ -81,6 +85,7 @@ export default function Admin() {
     setDriveFileId(emptyForm.driveFileId);
     setThumbnail(emptyForm.thumbnail);
     setAllowedEmails(emptyForm.allowedEmails);
+    setQualities(emptyForm.qualities);
     setEditingVideoId(null);
   };
 
@@ -91,6 +96,26 @@ export default function Admin() {
         email.trim().toLowerCase()
       )
       .filter(Boolean);
+  };
+
+  const parseQualities = () => {
+    return qualities
+      .split("\n")
+      .map((line) => {
+        const [label, ...fileIdParts] =
+          line.split(":");
+
+        return {
+          label: label?.trim(),
+          driveFileId: fileIdParts
+            .join(":")
+            .trim(),
+        };
+      })
+      .filter(
+        (quality) =>
+          quality.label && quality.driveFileId
+      );
   };
 
 
@@ -106,6 +131,7 @@ export default function Admin() {
         driveFileId,
         thumbnail,
         allowedEmails: parseAllowedEmails(),
+        qualities: parseQualities(),
       };
 
       if (editingVideoId) {
@@ -140,6 +166,14 @@ export default function Admin() {
     setThumbnail(video.thumbnail || "");
     setAllowedEmails(
       (video.allowedEmails || []).join(", ")
+    );
+    setQualities(
+      (video.qualities || [])
+        .map(
+          (quality) =>
+            `${quality.label}: ${quality.driveFileId}`
+        )
+        .join("\n")
     );
   };
 
@@ -242,6 +276,18 @@ export default function Admin() {
                       ? video.allowedEmails.join(", ")
                       : "All logged-in users"}
                   </p>
+
+                  <p className="mt-2 break-all text-sm text-gray-500">
+                    Qualities:{" "}
+                    {video.qualities?.length
+                      ? video.qualities
+                          .map(
+                            (quality) =>
+                              quality.label
+                          )
+                          .join(", ")
+                      : "Default only"}
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-1 md:content-center">
@@ -324,6 +370,15 @@ export default function Admin() {
             value={allowedEmails}
             onChange={(e) =>
               setAllowedEmails(e.target.value)
+            }
+          />
+
+          <textarea
+            placeholder="Quality options, one per line. Example: 720p: googleDriveFileId"
+            className="w-full p-3 mb-4 bg-gray-800 rounded"
+            value={qualities}
+            onChange={(e) =>
+              setQualities(e.target.value)
             }
           />
 

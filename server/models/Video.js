@@ -24,6 +24,22 @@ const videoSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+
+    qualities: {
+      type: [
+        {
+          label: {
+            type: String,
+            required: true,
+          },
+          driveFileId: {
+            type: String,
+            required: true,
+          },
+        },
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true,

@@ -18,6 +18,35 @@ const normalizeEmailList = (emails) => {
   ];
 };
 
+const normalizeQualities = (qualities) => {
+  const qualityList = Array.isArray(qualities)
+    ? qualities
+    : String(qualities || "")
+        .split("\n")
+        .map((line) => {
+          const [label, ...fileIdParts] =
+            line.split(":");
+
+          return {
+            label,
+            driveFileId:
+              fileIdParts.join(":"),
+          };
+        });
+
+  return qualityList
+    .map((quality) => ({
+      label: String(quality.label || "").trim(),
+      driveFileId: String(
+        quality.driveFileId || ""
+      ).trim(),
+    }))
+    .filter(
+      (quality) =>
+        quality.label && quality.driveFileId
+    );
+};
+
 const canViewVideo = (user, video) => {
   if (user.role === "admin") {
     return true;
@@ -31,6 +60,16 @@ const canViewVideo = (user, video) => {
 
   return allowedEmails.includes(
     user.email.toLowerCase()
+  );
+};
+
+const isDownloadLikeRequest = (req) => {
+  const fetchDest = req.headers["sec-fetch-dest"];
+  const fetchMode = req.headers["sec-fetch-mode"];
+
+  return (
+    fetchDest === "document" ||
+    fetchMode === "navigate"
   );
 };
 
@@ -91,7 +130,14 @@ export const streamVideo = async (
     const { fileId } = req.params;
 
     const video = await Video.findOne({
-      driveFileId: fileId,
+      $or: [
+        {
+          driveFileId: fileId,
+        },
+        {
+          "qualities.driveFileId": fileId,
+        },
+      ],
     });
 
     if (!video) {
@@ -120,6 +166,15 @@ export const streamVideo = async (
     const range = req.headers.range;
 
     const CHUNK_SIZE = 10 ** 6;
+    const sharedVideoHeaders = {
+      "Accept-Ranges": "bytes",
+      "Content-Type": metadata.data.mimeType,
+      "Content-Disposition": "inline",
+      "Cache-Control":
+        "no-store, no-cache, must-revalidate, private",
+      Pragma: "no-cache",
+      "X-Content-Type-Options": "nosniff",
+    };
 
     // IMPORTANT CORS HEADERS
     res.setHeader(
@@ -138,10 +193,15 @@ export const streamVideo = async (
     );
 
     if (!range) {
+      if (isDownloadLikeRequest(req)) {
+        return res.status(403).json({
+          message: "Download is not allowed",
+        });
+      }
+
       res.writeHead(200, {
-        "Accept-Ranges": "bytes",
+        ...sharedVideoHeaders,
         "Content-Length": fileSize,
-        "Content-Type": metadata.data.mimeType,
       });
 
       const response =
@@ -193,18 +253,13 @@ export const streamVideo = async (
 
     // VIDEO HEADERS
     res.writeHead(206, {
+      ...sharedVideoHeaders,
 
       "Content-Range":
         `bytes ${start}-${end}/${fileSize}`,
 
-      "Accept-Ranges":
-        "bytes",
-
       "Content-Length":
         contentLength,
-
-      "Content-Type":
-        metadata.data.mimeType,
     });
 
 
@@ -251,6 +306,7 @@ export const addVideo = async (
       driveFileId,
       thumbnail,
       allowedEmails,
+      qualities,
     } = req.body;
 
     const video = await Video.create({
@@ -260,6 +316,7 @@ export const addVideo = async (
       thumbnail,
       allowedEmails:
         normalizeEmailList(allowedEmails),
+      qualities: normalizeQualities(qualities),
     });
 
     res.status(201).json(video);
@@ -289,6 +346,7 @@ export const updateVideo = async (
       driveFileId,
       thumbnail,
       allowedEmails,
+      qualities,
     } = req.body;
 
     const video = await Video.findByIdAndUpdate(
@@ -300,6 +358,7 @@ export const updateVideo = async (
         thumbnail,
         allowedEmails:
           normalizeEmailList(allowedEmails),
+        qualities: normalizeQualities(qualities),
       },
       {
         new: true,
