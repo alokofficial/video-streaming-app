@@ -4,7 +4,7 @@ import driveService from "../config/googleDrive.js";
 
 const metadataCache = new Map();
 const METADATA_CACHE_MS = 5 * 60 * 1000;
-const STREAM_CHUNK_SIZE = 8 * 1024 * 1024;
+const STREAM_CHUNK_SIZE = 16 * 1024 * 1024;
 
 const getCachedFileMetadata = async (fileId) => {
   const cached = metadataCache.get(fileId);
@@ -100,6 +100,120 @@ const isDownloadLikeRequest = (req) => {
   );
 };
 
+const getRangeBounds = (range, fileSize) => {
+  if (!range) {
+    return {
+      start: 0,
+      end: Math.min(
+        STREAM_CHUNK_SIZE - 1,
+        fileSize - 1
+      ),
+    };
+  }
+
+  const rangeMatch = range.match(
+    /bytes=(\d*)-(\d*)/
+  );
+
+  if (!rangeMatch) {
+    return null;
+  }
+
+  const [, startValue, endValue] = rangeMatch;
+
+  if (!startValue && !endValue) {
+    return null;
+  }
+
+  if (!startValue) {
+    const suffixLength = Number(endValue);
+
+    if (
+      !Number.isFinite(suffixLength) ||
+      suffixLength <= 0
+    ) {
+      return null;
+    }
+
+    const start = Math.max(
+      fileSize - suffixLength,
+      0
+    );
+
+    return {
+      start,
+      end: fileSize - 1,
+    };
+  }
+
+  const requestedStart = Number(startValue);
+
+  if (
+    !Number.isFinite(requestedStart) ||
+    requestedStart >= fileSize
+  ) {
+    return null;
+  }
+
+  const requestedEnd = endValue
+    ? Number(endValue)
+    : requestedStart + STREAM_CHUNK_SIZE - 1;
+
+  if (!Number.isFinite(requestedEnd)) {
+    return null;
+  }
+
+  const start = Math.max(requestedStart, 0);
+  const end = Math.min(
+    requestedEnd,
+    start + STREAM_CHUNK_SIZE - 1,
+    fileSize - 1
+  );
+
+  return {
+    start,
+    end,
+  };
+};
+
+const pipeDriveRange = async ({
+  fileId,
+  start,
+  end,
+  res,
+}) => {
+  const response = await driveService.files.get(
+    {
+      fileId,
+      alt: "media",
+    },
+    {
+      responseType: "stream",
+      headers: {
+        Range: `bytes=${start}-${end}`,
+      },
+    }
+  );
+
+  response.data.on("error", (error) => {
+    console.log(error);
+
+    if (!res.headersSent) {
+      res.status(500).json({
+        message: "Streaming Failed",
+      });
+    } else {
+      res.destroy(error);
+    }
+  });
+
+  res.on("close", () => {
+    response.data.destroy();
+  });
+
+  response.data.pipe(res);
+};
+
 
 // GET ALL VIDEOS
 export const getVideos = async (
@@ -186,6 +300,12 @@ export const streamVideo = async (
       metadata.size
     );
 
+    if (!Number.isFinite(fileSize) || fileSize <= 0) {
+      return res.status(500).json({
+        message: "Invalid video size",
+      });
+    }
+
     const range = req.headers.range;
     const sharedVideoHeaders = {
       "Accept-Ranges": "bytes",
@@ -219,54 +339,24 @@ export const streamVideo = async (
           message: "Download is not allowed",
         });
       }
-
-      res.writeHead(200, {
-        ...sharedVideoHeaders,
-        "Content-Length": fileSize,
-      });
-
-      const response =
-        await driveService.files.get(
-          {
-            fileId,
-            alt: "media",
-          },
-          {
-            responseType: "stream",
-          }
-        );
-
-      response.data.pipe(res);
-      return;
     }
 
-    const rangeMatch = range.match(
-      /bytes=(\d*)-(\d*)/
+    const bounds = getRangeBounds(
+      range,
+      fileSize
     );
 
-    if (!rangeMatch) {
+    if (!bounds) {
+      res.setHeader(
+        "Content-Range",
+        `bytes */${fileSize}`
+      );
       return res.status(416).send(
-        "Invalid Range header"
+        "Range Not Satisfiable"
       );
     }
 
-    const requestedStart = rangeMatch[1]
-      ? Number(rangeMatch[1])
-      : 0;
-    const requestedEnd = rangeMatch[2]
-      ? Number(rangeMatch[2])
-      : requestedStart + STREAM_CHUNK_SIZE - 1;
-
-    const start = Math.min(
-      requestedStart,
-      fileSize - 1
-    );
-
-    const end = Math.min(
-      requestedEnd,
-      start + STREAM_CHUNK_SIZE - 1,
-      fileSize - 1
-    );
+    const { start, end } = bounds;
 
     const contentLength =
       end - start + 1;
@@ -284,23 +374,12 @@ export const streamVideo = async (
     });
 
 
-    // Stream from Google Drive
-    const response =
-      await driveService.files.get(
-        {
-          fileId,
-          alt: "media",
-        },
-        {
-          responseType: "stream",
-
-          headers: {
-            Range: `bytes=${start}-${end}`,
-          },
-        }
-      );
-
-    response.data.pipe(res);
+    await pipeDriveRange({
+      fileId,
+      start,
+      end,
+      res,
+    });
 
   } catch (error) {
 
