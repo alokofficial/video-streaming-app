@@ -42,6 +42,8 @@ export default function Admin() {
   const emptyForm = {
     title: "",
     description: "",
+    category: "",
+    subheading: "",
     driveFileId: "",
     thumbnail: "",
     allowedEmails: "",
@@ -70,10 +72,28 @@ export default function Admin() {
   const [editingVideoId, setEditingVideoId] =
     useState(null);
 
+  const [newUserName, setNewUserName] =
+    useState("");
+
+  const [newUserEmail, setNewUserEmail] =
+    useState("");
+
+  const [newUserPassword, setNewUserPassword] =
+    useState("");
+
+  const [newUserRole, setNewUserRole] =
+    useState("user");
+
   const [title, setTitle] =
     useState("");
 
   const [description, setDescription] =
+    useState("");
+
+  const [category, setCategory] =
+    useState("");
+
+  const [subheading, setSubheading] =
     useState("");
 
   const [driveFileId, setDriveFileId] =
@@ -128,6 +148,8 @@ export default function Admin() {
   const resetForm = () => {
     setTitle(emptyForm.title);
     setDescription(emptyForm.description);
+    setCategory(emptyForm.category);
+    setSubheading(emptyForm.subheading);
     setDriveFileId(emptyForm.driveFileId);
     setThumbnail(emptyForm.thumbnail);
     setAllowedEmails(emptyForm.allowedEmails);
@@ -202,6 +224,32 @@ export default function Admin() {
     return "";
   };
 
+  const resetUserForm = () => {
+    setNewUserName("");
+    setNewUserEmail("");
+    setNewUserPassword("");
+    setNewUserRole("user");
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+
+    try {
+      await API.post("/auth/users", {
+        name: newUserName,
+        email: newUserEmail,
+        password: newUserPassword,
+        role: newUserRole,
+      });
+
+      resetUserForm();
+      fetchUsers();
+    } catch (error) {
+      console.log(error);
+      alert(getErrorMessage(error));
+    }
+  };
+
 
   const handleSubmit = async (e) => {
 
@@ -218,6 +266,8 @@ export default function Admin() {
       const payload = {
         title,
         description,
+        category,
+        subheading,
         driveFileId,
         thumbnail,
         allowedEmails: parseAllowedEmails(),
@@ -253,6 +303,8 @@ export default function Admin() {
     setEditingVideoId(video._id);
     setTitle(video.title);
     setDescription(video.description || "");
+    setCategory(video.category || "");
+    setSubheading(video.subheading || "");
     setDriveFileId(video.driveFileId);
     setThumbnail(video.thumbnail || "");
     setAllowedEmails(
@@ -425,6 +477,59 @@ export default function Admin() {
               </table>
             </div>
           )}
+
+          <form
+            onSubmit={handleCreateUser}
+            className="mt-6 grid gap-4 rounded-xl bg-gray-900 p-4 md:grid-cols-[1fr_1fr_1fr_160px_auto]"
+          >
+            <input
+              type="text"
+              placeholder="Name"
+              className="rounded bg-gray-800 p-3"
+              value={newUserName}
+              onChange={(e) =>
+                setNewUserName(e.target.value)
+              }
+            />
+
+            <input
+              type="email"
+              placeholder="Email"
+              className="rounded bg-gray-800 p-3"
+              value={newUserEmail}
+              onChange={(e) =>
+                setNewUserEmail(e.target.value)
+              }
+            />
+
+            <input
+              type="password"
+              placeholder="Password"
+              className="rounded bg-gray-800 p-3"
+              value={newUserPassword}
+              onChange={(e) =>
+                setNewUserPassword(e.target.value)
+              }
+            />
+
+            <select
+              value={newUserRole}
+              onChange={(e) =>
+                setNewUserRole(e.target.value)
+              }
+              className="rounded bg-gray-800 p-3"
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+
+            <button
+              type="submit"
+              className="rounded bg-blue-600 px-4 py-3 font-semibold"
+            >
+              Add User
+            </button>
+          </form>
         </div>
 
         <div className="mb-8">
@@ -483,6 +588,11 @@ export default function Admin() {
 
                   <p className="mt-2 text-gray-400">
                     {video.description}
+                  </p>
+
+                  <p className="mt-2 text-sm text-gray-500">
+                    {video.category || "General"} /{" "}
+                    {video.subheading || "Featured"}
                   </p>
 
                   <p className="mt-2 break-all text-sm text-gray-500">
@@ -569,6 +679,26 @@ export default function Admin() {
             {countLetters(description)} /{" "}
             {fieldLimits.description} letters
           </p>
+
+          <input
+            type="text"
+            placeholder="Category Type"
+            className="w-full p-3 mb-4 bg-gray-800 rounded"
+            value={category}
+            onChange={(e) =>
+              setCategory(e.target.value)
+            }
+          />
+
+          <input
+            type="text"
+            placeholder="Subheading"
+            className="w-full p-3 mb-4 bg-gray-800 rounded"
+            value={subheading}
+            onChange={(e) =>
+              setSubheading(e.target.value)
+            }
+          />
 
           <input
             type="text"

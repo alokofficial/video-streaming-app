@@ -24,6 +24,16 @@ const videoSchema = new mongoose.Schema(
       validate: maxLettersValidator(150),
     },
 
+    category: {
+      type: String,
+      default: "General",
+    },
+
+    subheading: {
+      type: String,
+      default: "Featured",
+    },
+
     driveFileId: {
       type: String,
       required: true,

@@ -5,6 +5,7 @@ import {
   loginUser,
   changePassword,
   getUsers,
+  createUser,
   deleteUser,
 } from "../controllers/authController.js";
 import {
@@ -22,6 +23,12 @@ router.get(
   protect,
   authorizeRoles("admin"),
   getUsers
+);
+router.post(
+  "/users",
+  protect,
+  authorizeRoles("admin"),
+  createUser
 );
 router.delete(
   "/users/:id",

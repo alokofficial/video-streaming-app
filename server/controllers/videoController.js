@@ -303,6 +303,8 @@ export const addVideo = async (
     const {
       title,
       description,
+      category,
+      subheading,
       driveFileId,
       thumbnail,
       allowedEmails,
@@ -312,6 +314,12 @@ export const addVideo = async (
     const video = await Video.create({
       title,
       description,
+      category:
+        String(category || "General").trim() ||
+        "General",
+      subheading:
+        String(subheading || "Featured").trim() ||
+        "Featured",
       driveFileId,
       thumbnail,
       allowedEmails:
@@ -343,6 +351,8 @@ export const updateVideo = async (
     const {
       title,
       description,
+      category,
+      subheading,
       driveFileId,
       thumbnail,
       allowedEmails,
@@ -354,6 +364,12 @@ export const updateVideo = async (
       {
         title,
         description,
+        category:
+          String(category || "General").trim() ||
+          "General",
+        subheading:
+          String(subheading || "Featured").trim() ||
+          "Featured",
         driveFileId,
         thumbnail,
         allowedEmails:
