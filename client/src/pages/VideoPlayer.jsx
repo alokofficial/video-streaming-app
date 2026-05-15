@@ -182,6 +182,7 @@ export default function VideoPlayer() {
   const previewVideoRef = useRef(null);
   const progressRef = useRef(null);
   const controlsTimerRef = useRef(null);
+  const previewSeekTimerRef = useRef(null);
 
   const [selectedFileId, setSelectedFileId] =
     useState(fileId);
@@ -320,10 +321,28 @@ export default function VideoPlayer() {
     }
 
     setIsSeekPreviewLoading(true);
-    previewVideo.currentTime = getSafeSeekTime(
-      seekPreviewTime,
-      previewVideo.duration
+    window.clearTimeout(
+      previewSeekTimerRef.current
     );
+
+    previewSeekTimerRef.current =
+      window.setTimeout(() => {
+        if (!previewVideoRef.current) {
+          return;
+        }
+
+        previewVideoRef.current.currentTime =
+          getSafeSeekTime(
+            seekPreviewTime,
+            previewVideoRef.current.duration
+          );
+      }, 180);
+
+    return () => {
+      window.clearTimeout(
+        previewSeekTimerRef.current
+      );
+    };
   }, [
     isSeekPreviewReady,
     seekPreviewTime,

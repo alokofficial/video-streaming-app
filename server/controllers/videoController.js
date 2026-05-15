@@ -2,6 +2,33 @@ import Video from "../models/Video.js";
 
 import driveService from "../config/googleDrive.js";
 
+const metadataCache = new Map();
+const METADATA_CACHE_MS = 5 * 60 * 1000;
+const STREAM_CHUNK_SIZE = 8 * 1024 * 1024;
+
+const getCachedFileMetadata = async (fileId) => {
+  const cached = metadataCache.get(fileId);
+
+  if (
+    cached &&
+    Date.now() - cached.cachedAt < METADATA_CACHE_MS
+  ) {
+    return cached.data;
+  }
+
+  const metadata = await driveService.files.get({
+    fileId,
+    fields: "size,mimeType,name",
+  });
+
+  metadataCache.set(fileId, {
+    cachedAt: Date.now(),
+    data: metadata.data,
+  });
+
+  return metadata.data;
+};
+
 const normalizeEmailList = (emails) => {
   const emailList = Array.isArray(emails)
     ? emails
@@ -152,23 +179,17 @@ export const streamVideo = async (
       });
     }
 
-    // Get file metadata
     const metadata =
-      await driveService.files.get({
-        fileId,
-        fields: "size,mimeType,name",
-      });
+      await getCachedFileMetadata(fileId);
 
     const fileSize = Number(
-      metadata.data.size
+      metadata.size
     );
 
     const range = req.headers.range;
-
-    const CHUNK_SIZE = 10 ** 6;
     const sharedVideoHeaders = {
       "Accept-Ranges": "bytes",
-      "Content-Type": metadata.data.mimeType,
+      "Content-Type": metadata.mimeType,
       "Content-Disposition": "inline",
       "Cache-Control":
         "no-store, no-cache, must-revalidate, private",
@@ -234,7 +255,7 @@ export const streamVideo = async (
       : 0;
     const requestedEnd = rangeMatch[2]
       ? Number(rangeMatch[2])
-      : requestedStart + CHUNK_SIZE;
+      : requestedStart + STREAM_CHUNK_SIZE - 1;
 
     const start = Math.min(
       requestedStart,
@@ -243,7 +264,7 @@ export const streamVideo = async (
 
     const end = Math.min(
       requestedEnd,
-      start + CHUNK_SIZE,
+      start + STREAM_CHUNK_SIZE - 1,
       fileSize - 1
     );
 
