@@ -36,6 +36,9 @@ const fieldLimits = {
   driveFileId: 100,
 };
 
+const USERS_PER_PAGE = 10;
+const VIDEOS_PER_PAGE = 5;
+
 export default function Admin() {
   const { user: currentUser } = useAuth();
 
@@ -107,6 +110,15 @@ export default function Admin() {
 
   const [qualities, setQualities] =
     useState("");
+
+  const [activeTab, setActiveTab] =
+    useState("content");
+
+  const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [userPage, setUserPage] = useState(1);
+
+  const [videoSearchTerm, setVideoSearchTerm] = useState("");
+  const [videoPage, setVideoPage] = useState(1);
 
   const fetchVideos = useCallback(async () => {
     try {
@@ -362,6 +374,32 @@ export default function Admin() {
     }
   };
 
+  const filteredUsers = users.filter((u) => 
+    u.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
+    u.email?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+    u.role?.toLowerCase().includes(userSearchTerm.toLowerCase())
+  );
+  const totalUserPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE) || 1;
+  const displayedUsers = filteredUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
+
+  const handleUserSearch = (e) => {
+    setUserSearchTerm(e.target.value);
+    setUserPage(1);
+  };
+
+  const filteredVideos = videos.filter((v) => 
+    v.title?.toLowerCase().includes(videoSearchTerm.toLowerCase()) || 
+    v.description?.toLowerCase().includes(videoSearchTerm.toLowerCase()) ||
+    v.category?.toLowerCase().includes(videoSearchTerm.toLowerCase())
+  );
+  const totalVideoPages = Math.ceil(filteredVideos.length / VIDEOS_PER_PAGE) || 1;
+  const displayedVideos = filteredVideos.slice((videoPage - 1) * VIDEOS_PER_PAGE, videoPage * VIDEOS_PER_PAGE);
+
+  const handleVideoSearch = (e) => {
+    setVideoSearchTerm(e.target.value);
+    setVideoPage(1);
+  };
+
   return (
 
     <div className="min-h-screen bg-black text-white">
@@ -406,7 +444,17 @@ export default function Admin() {
             )}
 
           {users.length > 0 && (
-            <div className="overflow-x-auto rounded-xl bg-gray-900">
+            <>
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Search users by name, email, or role..."
+                  className="w-full max-w-md rounded bg-gray-800 p-3 text-sm focus:border-red-500 focus:outline-none"
+                  value={userSearchTerm}
+                  onChange={handleUserSearch}
+                />
+              </div>
+              <div className="overflow-x-auto rounded-xl bg-gray-900">
               <table className="w-full min-w-[760px] text-left text-sm">
                 <thead className="bg-gray-800 text-gray-300">
                   <tr>
@@ -423,7 +471,7 @@ export default function Admin() {
                 </thead>
 
                 <tbody>
-                  {users.map((user) => (
+                  {displayedUsers.map((user) => (
                     <tr
                       key={user.id}
                       className="border-t border-gray-800"
@@ -476,6 +524,29 @@ export default function Admin() {
                 </tbody>
               </table>
             </div>
+
+              <div className="mt-4 flex items-center justify-between">
+                <span className="text-sm text-gray-400">
+                  Showing {filteredUsers.length === 0 ? 0 : ((userPage - 1) * USERS_PER_PAGE) + 1} to {Math.min(userPage * USERS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} users
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    disabled={userPage === 1}
+                    onClick={() => setUserPage((p) => p - 1)}
+                    className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    disabled={userPage === totalUserPages}
+                    onClick={() => setUserPage((p) => p + 1)}
+                    className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </>
           )}
 
           <form
@@ -569,8 +640,20 @@ export default function Admin() {
               </p>
             )}
 
+          {videos.length > 0 && (
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search videos by title, description, or category..."
+                className="w-full max-w-md rounded bg-gray-800 p-3 text-sm focus:border-red-500 focus:outline-none"
+                value={videoSearchTerm}
+                onChange={handleVideoSearch}
+              />
+            </div>
+          )}
+
           <div className="grid gap-4">
-            {videos.map((video) => (
+            {displayedVideos.map((video) => (
               <div
                 key={video._id}
                 className="grid gap-4 bg-gray-900 p-4 rounded-xl md:grid-cols-[140px_1fr_180px]"
@@ -641,6 +724,30 @@ export default function Admin() {
               </div>
             ))}
           </div>
+
+          {videos.length > 0 && (
+            <div className="mt-4 flex items-center justify-between">
+              <span className="text-sm text-gray-400">
+                Showing {filteredVideos.length === 0 ? 0 : ((videoPage - 1) * VIDEOS_PER_PAGE) + 1} to {Math.min(videoPage * VIDEOS_PER_PAGE, filteredVideos.length)} of {filteredVideos.length} videos
+              </span>
+              <div className="flex gap-2">
+                <button
+                  disabled={videoPage === 1}
+                  onClick={() => setVideoPage((p) => p - 1)}
+                  className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                >
+                  Prev
+                </button>
+                <button
+                  disabled={videoPage === totalVideoPages}
+                  onClick={() => setVideoPage((p) => p + 1)}
+                  className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <form
