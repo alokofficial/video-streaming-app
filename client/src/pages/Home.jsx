@@ -10,6 +10,7 @@ import API from "../services/api";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
+  const [activeTab, setActiveTab] = useState("All");
 
   const groupedVideos = videos.reduce(
     (groups, video) => {
@@ -55,9 +56,11 @@ export default function Home() {
       <Navbar />
 
       <div className="p-6">
-        <h1 className="text-4xl font-bold mb-8">
-          Contents
-        </h1>
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-4xl font-bold">
+            Contents
+          </h1>
+        </div>
 
         {videos.length === 0 && (
           <p className="text-gray-400">
@@ -65,8 +68,38 @@ export default function Home() {
           </p>
         )}
 
+        {videos.length > 0 && (
+          <div className="mb-8 flex flex-wrap gap-4 border-b border-gray-800 pb-4">
+            <button
+              onClick={() => setActiveTab("All")}
+              className={`px-4 py-2 font-semibold transition-colors ${
+                activeTab === "All"
+                  ? "border-b-2 border-red-500 text-red-500"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              All
+            </button>
+            {Object.keys(groupedVideos).map((category) => (
+              <button
+                key={category}
+                onClick={() => setActiveTab(category)}
+                className={`px-4 py-2 font-semibold transition-colors ${
+                  activeTab === category
+                    ? "border-b-2 border-red-500 text-red-500"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="grid gap-10">
-          {Object.entries(groupedVideos).map(
+          {Object.entries(groupedVideos)
+            .filter(([category]) => activeTab === "All" || activeTab === category)
+            .map(
             ([category, subheadingGroups]) => (
               <section key={category}>
                 <h2 className="mb-5 text-3xl font-bold">
