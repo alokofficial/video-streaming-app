@@ -52,7 +52,7 @@ export default function Navbar() {
   };
 
   return (
-    <div className="bg-black text-white p-4 flex justify-between gap-4">
+    <nav className="bg-black/20 backdrop-blur-md border-b border-white/10 text-white p-4 flex justify-between items-center gap-4 sticky top-0 z-50 transition-all duration-300">
       <Link to="/" className="min-w-0">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-400">
           Learning App
@@ -160,6 +160,6 @@ export default function Navbar() {
           </div>
         )}
       </div>
-    </div>
+    </nav>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
+import ThreeBackground from "../components/ThreeBackground";
 
 import API from "../services/api";
 
@@ -49,7 +50,8 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen text-white relative bg-transparent">
+      <ThreeBackground />
       <Navbar />
 
       <div className="p-6">
