@@ -6,6 +6,7 @@ import {
 } from "react";
 
 import Navbar from "../components/Navbar";
+import ThreeBackground from "../components/ThreeBackground";
 
 import API from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -302,6 +303,7 @@ export default function Admin() {
       resetForm();
       fetchVideos();
       fetchUsers();
+      setActiveTab("content");
 
     } catch (error) {
 
@@ -312,6 +314,7 @@ export default function Admin() {
   };
 
   const handleEdit = (video) => {
+    setActiveTab("videoForm");
     setEditingVideoId(video._id);
     setTitle(video.title);
     setDescription(video.description || "");
@@ -402,12 +405,40 @@ export default function Admin() {
 
   return (
 
-    <div className="min-h-screen bg-black text-white">
-
+    <div className="min-h-screen text-white relative bg-transparent">
+      <ThreeBackground />
       <Navbar />
 
       <div className="p-6">
 
+        <div className="mb-8 flex gap-4 border-b border-gray-800 pb-4">
+          <button
+            onClick={() => setActiveTab("users")}
+            className={`px-4 py-2 font-semibold transition-colors ${
+              activeTab === "users" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Manage Users
+          </button>
+          <button
+            onClick={() => setActiveTab("content")}
+            className={`px-4 py-2 font-semibold transition-colors ${
+              activeTab === "content" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Manage Content
+          </button>
+          <button
+            onClick={() => { setActiveTab("videoForm"); resetForm(); }}
+            className={`px-4 py-2 font-semibold transition-colors ${
+              activeTab === "videoForm" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            {editingVideoId ? "Edit Video" : "Add Video"}
+          </button>
+        </div>
+
+        {activeTab === "users" && (
         <div className="mb-8">
           <div className="mb-4 flex items-center justify-between gap-4">
             <h2 className="text-3xl font-bold">
@@ -602,7 +633,9 @@ export default function Admin() {
             </button>
           </form>
         </div>
+        )}
 
+        {activeTab === "content" && (
         <div className="mb-8">
           <div className="mb-4 flex items-center justify-between gap-4">
             <h2 className="text-3xl font-bold">
@@ -749,7 +782,9 @@ export default function Admin() {
             </div>
           )}
         </div>
+        )}
 
+        {activeTab === "videoForm" && (
         <form
           onSubmit={handleSubmit}
           className="mx-auto max-w-xl bg-gray-900 p-6 rounded-xl"
@@ -860,7 +895,7 @@ export default function Admin() {
           {editingVideoId && (
             <button
               type="button"
-              onClick={resetForm}
+              onClick={() => { resetForm(); setActiveTab("content"); }}
               className="mt-3 w-full bg-gray-700 p-3 rounded font-semibold"
             >
               Cancel Edit
@@ -868,6 +903,7 @@ export default function Admin() {
           )}
 
         </form>
+        )}
 
       </div>
 
