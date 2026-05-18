@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
 import VideoPlayer from "./pages/VideoPlayer";
+import YoutubePlayer from "./pages/YoutubePlayer";
 import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
 
@@ -36,6 +37,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <VideoPlayer />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Youtube Watch Route */}
+        <Route
+          path="/youtube/:videoId"
+          element={
+            <ProtectedRoute>
+              <YoutubePlayer />
             </ProtectedRoute>
           }
         />

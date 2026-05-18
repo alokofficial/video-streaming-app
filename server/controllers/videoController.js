@@ -477,7 +477,7 @@ export const updateVideo = async (
         qualities: normalizeQualities(qualities),
       },
       {
-        new: true,
+        returnDocument: 'after',
         runValidators: true,
       }
     );

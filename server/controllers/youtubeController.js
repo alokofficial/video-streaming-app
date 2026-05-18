@@ -91,7 +91,7 @@ export const updateYoutubeVideo = async (req, res) => {
     const video = await YoutubeVideo.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!video) {

@@ -10,6 +10,8 @@ import API from "../services/api";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
+  const [youtubeVideos, setYoutubeVideos] =
+    useState([]);
   const [activeTab, setActiveTab] = useState("All");
 
   const groupedVideos = videos.reduce(
@@ -36,11 +38,16 @@ export default function Home() {
 
   async function fetchVideos() {
     try {
-      const { data } = await API.get("/videos");
+      const [
+        { data: driveVideos },
+        { data: protectedYoutubeVideos },
+      ] = await Promise.all([
+        API.get("/videos"),
+        API.get("/youtube"),
+      ]);
 
-      console.log(data);
-
-      setVideos(data);
+      setVideos(driveVideos);
+      setYoutubeVideos(protectedYoutubeVideos);
     } catch (error) {
       console.log(error);
     }
@@ -62,13 +69,15 @@ export default function Home() {
           </h1>
         </div>
 
-        {videos.length === 0 && (
+        {videos.length === 0 &&
+          youtubeVideos.length === 0 && (
           <p className="text-gray-400">
             No videos available for your account.
           </p>
         )}
 
-        {videos.length > 0 && (
+        {(videos.length > 0 ||
+          youtubeVideos.length > 0) && (
           <div className="mb-8 flex flex-wrap gap-4 border-b border-gray-800 pb-4">
             <button
               onClick={() => setActiveTab("All")}
@@ -93,11 +102,24 @@ export default function Home() {
                 {category}
               </button>
             ))}
+            {youtubeVideos.length > 0 && (
+              <button
+                onClick={() => setActiveTab("YouTube")}
+                className={`px-4 py-2 font-semibold transition-colors ${
+                  activeTab === "YouTube"
+                    ? "border-b-2 border-red-500 text-red-500"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                YouTube
+              </button>
+            )}
           </div>
         )}
 
         <div className="grid gap-10">
-          {Object.entries(groupedVideos)
+          {activeTab !== "YouTube" &&
+            Object.entries(groupedVideos)
             .filter(([category]) => activeTab === "All" || activeTab === category)
             .map(
             ([category, subheadingGroups]) => (
@@ -149,6 +171,55 @@ export default function Home() {
               </section>
             )
           )}
+
+          {(activeTab === "All" ||
+            activeTab === "YouTube") &&
+            youtubeVideos.length > 0 && (
+              <section>
+                <h2 className="mb-5 text-3xl font-bold">
+                  YouTube
+                </h2>
+
+                <div>
+                  <h3 className="mb-4 text-xl font-semibold text-gray-300">
+                    Protected YouTube Videos
+                  </h3>
+
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-4">
+                    {youtubeVideos.map((video) => (
+                      <Link
+                        key={video._id}
+                        to={`/youtube/${video._id}`}
+                      >
+                        <div className="overflow-hidden rounded-lg bg-gray-900 transition duration-300 hover:scale-105">
+                          <div className="relative">
+                            <img
+                              src={video.thumbnail}
+                              alt={video.title}
+                              className="h-[220px] w-full object-cover"
+                            />
+
+                            <span className="absolute bottom-3 right-3 rounded bg-red-600 px-2 py-1 text-xs font-bold">
+                              YouTube
+                            </span>
+                          </div>
+
+                          <div className="p-4">
+                            <h4 className="text-xl font-semibold">
+                              {video.title}
+                            </h4>
+
+                            <p className="mt-2 text-gray-400">
+                              Protected video
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
         </div>
       </div>
     </div>

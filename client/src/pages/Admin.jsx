@@ -57,11 +57,19 @@ export default function Admin() {
 
   const [videos, setVideos] =
     useState([]);
+  const [youtubeVideos, setYoutubeVideos] =
+    useState([]);
 
   const [isLoadingVideos, setIsLoadingVideos] =
     useState(true);
+  const [
+    isLoadingYoutubeVideos,
+    setIsLoadingYoutubeVideos,
+  ] = useState(true);
 
   const [videosError, setVideosError] =
+    useState("");
+  const [youtubeVideosError, setYoutubeVideosError] =
     useState("");
 
   const [users, setUsers] =
@@ -75,6 +83,10 @@ export default function Admin() {
 
   const [editingVideoId, setEditingVideoId] =
     useState(null);
+  const [
+    editingYoutubeVideoId,
+    setEditingYoutubeVideoId,
+  ] = useState(null);
 
   const [newUserName, setNewUserName] =
     useState("");
@@ -112,6 +124,20 @@ export default function Admin() {
   const [qualities, setQualities] =
     useState("");
 
+  const [youtubeTitle, setYoutubeTitle] =
+    useState("");
+
+  const [youtubeVideoId, setYoutubeVideoId] =
+    useState("");
+
+  const [youtubeThumbnail, setYoutubeThumbnail] =
+    useState("");
+
+  const [
+    youtubeAllowedEmails,
+    setYoutubeAllowedEmails,
+  ] = useState("");
+
   const [activeTab, setActiveTab] =
     useState("content");
 
@@ -137,6 +163,22 @@ export default function Admin() {
     }
   }, []);
 
+  const fetchYoutubeVideos = useCallback(async () => {
+    try {
+      setIsLoadingYoutubeVideos(true);
+      setYoutubeVideosError("");
+
+      const { data } = await API.get("/youtube");
+
+      setYoutubeVideos(data);
+    } catch (error) {
+      console.log(error);
+      setYoutubeVideosError(getErrorMessage(error));
+    } finally {
+      setIsLoadingYoutubeVideos(false);
+    }
+  }, []);
+
   const fetchUsers = useCallback(async () => {
     try {
       setIsLoadingUsers(true);
@@ -155,8 +197,9 @@ export default function Admin() {
 
   useEffect(() => {
     fetchVideos();
+    fetchYoutubeVideos();
     fetchUsers();
-  }, [fetchVideos, fetchUsers]);
+  }, [fetchVideos, fetchYoutubeVideos, fetchUsers]);
 
   const resetForm = () => {
     setTitle(emptyForm.title);
@@ -170,8 +213,25 @@ export default function Admin() {
     setEditingVideoId(null);
   };
 
+  const resetYoutubeForm = () => {
+    setYoutubeTitle("");
+    setYoutubeVideoId("");
+    setYoutubeThumbnail("");
+    setYoutubeAllowedEmails("");
+    setEditingYoutubeVideoId(null);
+  };
+
   const parseAllowedEmails = () => {
     return allowedEmails
+      .split(/[,\n]/)
+      .map((email) =>
+        email.trim().toLowerCase()
+      )
+      .filter(Boolean);
+  };
+
+  const parseYoutubeAllowedEmails = () => {
+    return youtubeAllowedEmails
       .split(/[,\n]/)
       .map((email) =>
         email.trim().toLowerCase()
@@ -313,6 +373,39 @@ export default function Admin() {
     }
   };
 
+  const handleYoutubeSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const payload = {
+        title: youtubeTitle,
+        videoId: youtubeVideoId,
+        thumbnail: youtubeThumbnail,
+        allowedEmails: parseYoutubeAllowedEmails(),
+      };
+
+      if (editingYoutubeVideoId) {
+        await API.put(
+          `/youtube/${editingYoutubeVideoId}`,
+          payload
+        );
+
+        alert("YouTube video updated");
+      } else {
+        await API.post("/youtube", payload);
+
+        alert("YouTube video added");
+      }
+
+      resetYoutubeForm();
+      fetchYoutubeVideos();
+      setActiveTab("youtube");
+    } catch (error) {
+      console.log(error);
+      alert(getErrorMessage(error));
+    }
+  };
+
   const handleEdit = (video) => {
     setActiveTab("videoForm");
     setEditingVideoId(video._id);
@@ -335,6 +428,17 @@ export default function Admin() {
     );
   };
 
+  const handleYoutubeEdit = (video) => {
+    setActiveTab("youtubeForm");
+    setEditingYoutubeVideoId(video._id);
+    setYoutubeTitle(video.title || "");
+    setYoutubeVideoId("");
+    setYoutubeThumbnail(video.thumbnail || "");
+    setYoutubeAllowedEmails(
+      (video.allowedEmails || []).join(", ")
+    );
+  };
+
   const handleDelete = async (videoId) => {
     const confirmed = window.confirm(
       "Delete this video?"
@@ -353,6 +457,29 @@ export default function Admin() {
 
       fetchVideos();
       fetchUsers();
+    } catch (error) {
+      console.log(error);
+      alert(getErrorMessage(error));
+    }
+  };
+
+  const handleYoutubeDelete = async (videoId) => {
+    const confirmed = window.confirm(
+      "Delete this YouTube video?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await API.delete(`/youtube/${videoId}`);
+
+      if (editingYoutubeVideoId === videoId) {
+        resetYoutubeForm();
+      }
+
+      fetchYoutubeVideos();
     } catch (error) {
       console.log(error);
       alert(getErrorMessage(error));
@@ -429,12 +556,30 @@ export default function Admin() {
             Manage Content
           </button>
           <button
+            onClick={() => setActiveTab("youtube")}
+            className={`px-4 py-2 font-semibold transition-colors ${
+              activeTab === "youtube" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Manage YouTube
+          </button>
+          <button
             onClick={() => { setActiveTab("videoForm"); resetForm(); }}
             className={`px-4 py-2 font-semibold transition-colors ${
               activeTab === "videoForm" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
             }`}
           >
             {editingVideoId ? "Edit Video" : "Add Video"}
+          </button>
+          <button
+            onClick={() => { setActiveTab("youtubeForm"); resetYoutubeForm(); }}
+            className={`px-4 py-2 font-semibold transition-colors ${
+              activeTab === "youtubeForm" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            {editingYoutubeVideoId
+              ? "Edit YouTube"
+              : "Add YouTube"}
           </button>
         </div>
 
@@ -784,6 +929,98 @@ export default function Admin() {
         </div>
         )}
 
+        {activeTab === "youtube" && (
+          <div className="mb-8">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <h2 className="text-3xl font-bold">
+                Manage YouTube Videos
+              </h2>
+
+              <button
+                type="button"
+                onClick={fetchYoutubeVideos}
+                className="rounded bg-gray-800 px-4 py-2 font-semibold"
+              >
+                Refresh
+              </button>
+            </div>
+
+            {isLoadingYoutubeVideos && (
+              <p className="text-gray-400">
+                Loading YouTube videos...
+              </p>
+            )}
+
+            {youtubeVideosError && (
+              <p className="rounded bg-red-950 p-3 text-red-200">
+                {youtubeVideosError}
+              </p>
+            )}
+
+            {!isLoadingYoutubeVideos &&
+              !youtubeVideosError &&
+              youtubeVideos.length === 0 && (
+                <p className="text-gray-400">
+                  No YouTube videos added yet.
+                </p>
+              )}
+
+            <div className="grid gap-4">
+              {youtubeVideos.map((video) => (
+                <div
+                  key={video._id}
+                  className="grid gap-4 rounded-xl bg-gray-900 p-4 md:grid-cols-[140px_1fr_180px]"
+                >
+                  <img
+                    src={video.thumbnail}
+                    alt={video.title}
+                    className="h-[90px] w-full rounded object-cover md:w-[140px]"
+                  />
+
+                  <div>
+                    <h3 className="text-xl font-semibold">
+                      {video.title}
+                    </h3>
+
+                    <p className="mt-2 text-sm text-gray-500">
+                      Type: Protected YouTube
+                    </p>
+
+                    <p className="mt-2 break-all text-sm text-gray-500">
+                      Visible to:{" "}
+                      {video.allowedEmails?.length
+                        ? video.allowedEmails.join(", ")
+                        : "All logged-in users"}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-1 md:content-center">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleYoutubeEdit(video)
+                      }
+                      className="rounded bg-blue-600 px-4 py-3 font-semibold"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleYoutubeDelete(video._id)
+                      }
+                      className="rounded bg-red-700 px-4 py-3 font-semibold"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {activeTab === "videoForm" && (
         <form
           onSubmit={handleSubmit}
@@ -903,6 +1140,87 @@ export default function Admin() {
           )}
 
         </form>
+        )}
+
+        {activeTab === "youtubeForm" && (
+          <form
+            onSubmit={handleYoutubeSubmit}
+            className="mx-auto max-w-xl rounded-xl bg-gray-900 p-6"
+          >
+            <h1 className="mb-6 text-3xl font-bold">
+              {editingYoutubeVideoId
+                ? "Edit YouTube Video"
+                : "Add YouTube Video"}
+            </h1>
+
+            <input
+              type="text"
+              placeholder="Video Title"
+              className="w-full rounded bg-gray-800 p-3"
+              value={youtubeTitle}
+              onChange={(e) =>
+                setYoutubeTitle(e.target.value)
+              }
+            />
+            <p className="mb-4 mt-1 text-sm text-gray-400">
+              {countLetters(youtubeTitle)} /{" "}
+              {fieldLimits.title} letters
+            </p>
+
+            <input
+              type="text"
+              placeholder={
+                editingYoutubeVideoId
+                  ? "New YouTube Video ID (optional)"
+                  : "YouTube Video ID"
+              }
+              className="mb-4 w-full rounded bg-gray-800 p-3"
+              value={youtubeVideoId}
+              onChange={(e) =>
+                setYoutubeVideoId(e.target.value)
+              }
+            />
+
+            <input
+              type="text"
+              placeholder="Thumbnail URL"
+              className="mb-4 w-full rounded bg-gray-800 p-3"
+              value={youtubeThumbnail}
+              onChange={(e) =>
+                setYoutubeThumbnail(e.target.value)
+              }
+            />
+
+            <textarea
+              placeholder="Visible to email IDs. Leave blank for all users."
+              className="mb-4 w-full rounded bg-gray-800 p-3"
+              value={youtubeAllowedEmails}
+              onChange={(e) =>
+                setYoutubeAllowedEmails(
+                  e.target.value
+                )
+              }
+            />
+
+            <button className="w-full rounded bg-red-600 p-3 font-semibold">
+              {editingYoutubeVideoId
+                ? "Save YouTube Video"
+                : "Add YouTube Video"}
+            </button>
+
+            {editingYoutubeVideoId && (
+              <button
+                type="button"
+                onClick={() => {
+                  resetYoutubeForm();
+                  setActiveTab("youtube");
+                }}
+                className="mt-3 w-full rounded bg-gray-700 p-3 font-semibold"
+              >
+                Cancel Edit
+              </button>
+            )}
+          </form>
         )}
 
       </div>
