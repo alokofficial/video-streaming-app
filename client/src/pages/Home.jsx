@@ -36,6 +36,36 @@ export default function Home() {
     {}
   );
 
+  const groupedYoutubeVideos = youtubeVideos.reduce(
+    (groups, video) => {
+      const category =
+        video.category || "YouTube";
+      const subheading =
+        video.subheading ||
+        "Protected YouTube Videos";
+
+      if (!groups[category]) {
+        groups[category] = {};
+      }
+
+      if (!groups[category][subheading]) {
+        groups[category][subheading] = [];
+      }
+
+      groups[category][subheading].push(video);
+
+      return groups;
+    },
+    {}
+  );
+
+  const categories = [
+    ...new Set([
+      ...Object.keys(groupedVideos),
+      ...Object.keys(groupedYoutubeVideos),
+    ]),
+  ];
+
   async function fetchVideos() {
     try {
       const [
@@ -62,9 +92,9 @@ export default function Home() {
       <ThreeBackground />
       <Navbar />
 
-      <div className="p-6">
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-4xl font-bold">
+      <div className="p-4 sm:p-6">
+        <div className="mb-6 flex items-center justify-between sm:mb-8">
+          <h1 className="text-3xl font-bold sm:text-4xl">
             Contents
           </h1>
         </div>
@@ -78,10 +108,10 @@ export default function Home() {
 
         {(videos.length > 0 ||
           youtubeVideos.length > 0) && (
-          <div className="mb-8 flex flex-wrap gap-4 border-b border-gray-800 pb-4">
+          <div className="mb-8 flex gap-3 overflow-x-auto border-b border-gray-800 pb-4 sm:flex-wrap sm:gap-4">
             <button
               onClick={() => setActiveTab("All")}
-              className={`px-4 py-2 font-semibold transition-colors ${
+              className={`shrink-0 px-4 py-2 font-semibold transition-colors ${
                 activeTab === "All"
                   ? "border-b-2 border-red-500 text-red-500"
                   : "text-gray-400 hover:text-white"
@@ -89,11 +119,11 @@ export default function Home() {
             >
               All
             </button>
-            {Object.keys(groupedVideos).map((category) => (
+            {categories.map((category) => (
               <button
                 key={category}
                 onClick={() => setActiveTab(category)}
-                className={`px-4 py-2 font-semibold transition-colors ${
+                className={`shrink-0 px-4 py-2 font-semibold transition-colors ${
                   activeTab === category
                     ? "border-b-2 border-red-500 text-red-500"
                     : "text-gray-400 hover:text-white"
@@ -102,29 +132,16 @@ export default function Home() {
                 {category}
               </button>
             ))}
-            {youtubeVideos.length > 0 && (
-              <button
-                onClick={() => setActiveTab("YouTube")}
-                className={`px-4 py-2 font-semibold transition-colors ${
-                  activeTab === "YouTube"
-                    ? "border-b-2 border-red-500 text-red-500"
-                    : "text-gray-400 hover:text-white"
-                }`}
-              >
-                YouTube
-              </button>
-            )}
           </div>
         )}
 
         <div className="grid gap-10">
-          {activeTab !== "YouTube" &&
-            Object.entries(groupedVideos)
+          {Object.entries(groupedVideos)
             .filter(([category]) => activeTab === "All" || activeTab === category)
             .map(
             ([category, subheadingGroups]) => (
               <section key={category}>
-                <h2 className="mb-5 text-3xl font-bold">
+                <h2 className="mb-4 text-2xl font-bold sm:mb-5 sm:text-3xl">
                   {category}
                 </h2>
 
@@ -134,11 +151,11 @@ export default function Home() {
                   ).map(
                     ([subheading, sectionVideos]) => (
                       <div key={subheading}>
-                        <h3 className="mb-4 text-xl font-semibold text-gray-300">
+                        <h3 className="mb-4 text-lg font-semibold text-gray-300 sm:text-xl">
                           {subheading}
                         </h3>
 
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
                           {sectionVideos.map((video) => (
                             <Link
                               key={video._id}
@@ -148,11 +165,11 @@ export default function Home() {
                                 <img
                                   src={video.thumbnail}
                                   alt={video.title}
-                                  className="h-[220px] w-full object-cover"
+                                  className="aspect-video w-full object-cover"
                                 />
 
                                 <div className="p-4">
-                                  <h4 className="text-xl font-semibold">
+                                  <h4 className="text-lg font-semibold sm:text-xl">
                                     {video.title}
                                   </h4>
 
@@ -172,21 +189,27 @@ export default function Home() {
             )
           )}
 
-          {(activeTab === "All" ||
-            activeTab === "YouTube") &&
-            youtubeVideos.length > 0 && (
-              <section>
-                <h2 className="mb-5 text-3xl font-bold">
-                  YouTube
+          {Object.entries(groupedYoutubeVideos)
+            .filter(([category]) => activeTab === "All" || activeTab === category)
+            .map(
+              ([category, subheadingGroups]) => (
+              <section key={`youtube-${category}`}>
+                <h2 className="mb-4 text-2xl font-bold sm:mb-5 sm:text-3xl">
+                  {category}
                 </h2>
 
-                <div>
-                  <h3 className="mb-4 text-xl font-semibold text-gray-300">
-                    Protected YouTube Videos
+                <div className="grid gap-8">
+                  {Object.entries(
+                    subheadingGroups
+                  ).map(
+                    ([subheading, sectionVideos]) => (
+                  <div key={subheading}>
+                  <h3 className="mb-4 text-lg font-semibold text-gray-300 sm:text-xl">
+                    {subheading}
                   </h3>
 
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3 lg:grid-cols-4">
-                    {youtubeVideos.map((video) => (
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                    {sectionVideos.map((video) => (
                       <Link
                         key={video._id}
                         to={`/youtube/${video._id}`}
@@ -196,7 +219,7 @@ export default function Home() {
                             <img
                               src={video.thumbnail}
                               alt={video.title}
-                              className="h-[220px] w-full object-cover"
+                              className="aspect-video w-full object-cover"
                             />
 
                             <span className="absolute bottom-3 right-3 rounded bg-red-600 px-2 py-1 text-xs font-bold">
@@ -205,7 +228,7 @@ export default function Home() {
                           </div>
 
                           <div className="p-4">
-                            <h4 className="text-xl font-semibold">
+                            <h4 className="text-lg font-semibold sm:text-xl">
                               {video.title}
                             </h4>
 
@@ -218,7 +241,11 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
+                    )
+                  )}
+                </div>
               </section>
+              )
             )}
         </div>
       </div>

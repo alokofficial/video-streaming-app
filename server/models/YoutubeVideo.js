@@ -23,6 +23,16 @@ const youtubeVideoSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
+    category: {
+      type: String,
+      default: "YouTube",
+    },
+
+    subheading: {
+      type: String,
+      default: "Protected YouTube Videos",
+    },
     
     thumbnail: {
       type: String,

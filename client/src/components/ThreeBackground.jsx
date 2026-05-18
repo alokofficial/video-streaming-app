@@ -8,6 +8,14 @@ export default function ThreeBackground() {
     const currentMount = mountRef.current;
     if (!currentMount) return;
 
+    const isSmallScreen = window.matchMedia(
+      "(max-width: 767px)"
+    ).matches;
+
+    if (isSmallScreen) {
+      return;
+    }
+
     // 1. Setup Scene
     const scene = new THREE.Scene();
     const bgColor = 0x0a0c19; // Deep twilight blue
@@ -19,7 +27,9 @@ export default function ThreeBackground() {
 
     // 3. Setup Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, 1.5)
+    );
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setClearColor(bgColor);
     currentMount.appendChild(renderer.domElement);

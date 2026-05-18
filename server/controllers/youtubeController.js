@@ -52,7 +52,14 @@ export const getYoutubeVideos = async (req, res) => {
 
 export const addYoutubeVideo = async (req, res) => {
   try {
-    const { title, videoId, thumbnail, allowedEmails } = req.body;
+    const {
+      title,
+      videoId,
+      category,
+      subheading,
+      thumbnail,
+      allowedEmails,
+    } = req.body;
 
     if (!videoId) {
       return res.status(400).json({ message: "YouTube Video ID is required" });
@@ -63,6 +70,13 @@ export const addYoutubeVideo = async (req, res) => {
     const video = await YoutubeVideo.create({
       title,
       encryptedVideoId,
+      category:
+        String(category || "YouTube").trim() ||
+        "YouTube",
+      subheading:
+        String(
+          subheading || "Protected YouTube Videos"
+        ).trim() || "Protected YouTube Videos",
       thumbnail,
       allowedEmails: normalizeEmailList(allowedEmails),
     });
@@ -76,10 +90,24 @@ export const addYoutubeVideo = async (req, res) => {
 
 export const updateYoutubeVideo = async (req, res) => {
   try {
-    const { title, videoId, thumbnail, allowedEmails } = req.body;
+    const {
+      title,
+      videoId,
+      category,
+      subheading,
+      thumbnail,
+      allowedEmails,
+    } = req.body;
     
     const updateData = {
       title,
+      category:
+        String(category || "YouTube").trim() ||
+        "YouTube",
+      subheading:
+        String(
+          subheading || "Protected YouTube Videos"
+        ).trim() || "Protected YouTube Videos",
       thumbnail,
       allowedEmails: normalizeEmailList(allowedEmails),
     };

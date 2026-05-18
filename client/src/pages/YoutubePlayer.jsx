@@ -12,8 +12,8 @@ export default function YoutubePlayer() {
     <div className="min-h-screen bg-black text-white">
       <Navbar />
 
-      <div className="flex justify-center p-4 md:p-6 h-[calc(100vh-80px)]">
-        <div className="w-full max-w-6xl h-full rounded-xl overflow-hidden bg-gray-950">
+      <div className="flex min-h-[calc(100vh-76px)] justify-center p-3 sm:p-4 md:p-6">
+        <div className="aspect-video h-auto w-full max-w-6xl overflow-hidden rounded-xl bg-gray-950 md:h-full md:aspect-auto">
           <iframe 
             src={embedUrl} 
             className="w-full h-full border-none" 

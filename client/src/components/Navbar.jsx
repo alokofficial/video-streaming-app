@@ -52,29 +52,39 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-black/20 backdrop-blur-md border-b border-white/10 text-white p-4 flex justify-between items-center gap-4 sticky top-0 z-50 transition-all duration-300">
-      <Link to="/" className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-400">
+    <nav className="sticky top-0 z-50 flex items-center justify-between gap-3 border-b border-white/10 bg-black/60 p-3 text-white backdrop-blur-md transition-all duration-300 sm:p-4">
+      <Link to="/" className="min-w-0 flex-1">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-400 sm:text-xs sm:tracking-[0.2em]">
           Learning App
         </p>
-        <h1 className="truncate text-2xl font-bold">
+        <h1 className="truncate text-base font-bold sm:text-2xl">
           {headerTitle}
         </h1>
       </Link>
 
-      <div>
+      <div className="shrink-0">
         {!token ? (
-          <div className="flex gap-4">
-            <Link to="/login">Login</Link>
+          <div className="flex items-center gap-2 text-sm sm:gap-4 sm:text-base">
+            <Link
+              to="/login"
+              className="rounded bg-gray-900 px-3 py-2 font-semibold"
+            >
+              Login
+            </Link>
 
-            <Link to="/register">Register</Link>
+            <Link
+              to="/register"
+              className="hidden rounded bg-red-600 px-3 py-2 font-semibold sm:inline-block"
+            >
+              Register
+            </Link>
           </div>
         ) : (
-          <div className="relative flex items-center gap-4">
+          <div className="relative flex items-center gap-2 sm:gap-4">
             {isAdmin && (
               <Link
                 to="/admin"
-                className="rounded bg-gray-900 px-3 py-2 font-semibold hover:bg-gray-800"
+                className="rounded bg-gray-900 px-3 py-2 text-sm font-semibold hover:bg-gray-800 sm:text-base"
               >
                 Admin
               </Link>
@@ -85,9 +95,9 @@ export default function Navbar() {
               onClick={() =>
                 setIsMenuOpen((current) => !current)
               }
-              className="flex flex-col items-center gap-1 rounded px-2 py-1 hover:bg-gray-900"
+              className="flex flex-col items-center gap-1 rounded px-1 py-1 hover:bg-gray-900 sm:px-2"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 sm:h-10 sm:w-10">
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
@@ -98,13 +108,13 @@ export default function Navbar() {
                 </svg>
               </span>
 
-              <span className="max-w-[120px] truncate text-xs text-gray-300">
+              <span className="max-w-[72px] truncate text-[11px] text-gray-300 sm:max-w-[120px] sm:text-xs">
                 {user?.name}
               </span>
             </button>
 
             {isMenuOpen && (
-              <div className="absolute right-0 top-16 z-20 w-72 rounded-lg border border-gray-800 bg-gray-950 p-4 shadow-xl">
+              <div className="absolute right-0 top-14 z-20 w-[calc(100vw-1.5rem)] max-w-72 rounded-lg border border-gray-800 bg-gray-950 p-4 shadow-xl sm:top-16">
                 <div className="mb-4 border-b border-gray-800 pb-4">
                   <div className="flex items-center gap-3">
                     <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-800">

@@ -130,6 +130,14 @@ export default function Admin() {
   const [youtubeVideoId, setYoutubeVideoId] =
     useState("");
 
+  const [youtubeCategory, setYoutubeCategory] =
+    useState("");
+
+  const [
+    youtubeSubheading,
+    setYoutubeSubheading,
+  ] = useState("");
+
   const [youtubeThumbnail, setYoutubeThumbnail] =
     useState("");
 
@@ -146,6 +154,9 @@ export default function Admin() {
 
   const [videoSearchTerm, setVideoSearchTerm] = useState("");
   const [videoPage, setVideoPage] = useState(1);
+
+  const [youtubeSearchTerm, setYoutubeSearchTerm] = useState("");
+  const [youtubePage, setYoutubePage] = useState(1);
 
   const fetchVideos = useCallback(async () => {
     try {
@@ -216,6 +227,8 @@ export default function Admin() {
   const resetYoutubeForm = () => {
     setYoutubeTitle("");
     setYoutubeVideoId("");
+    setYoutubeCategory("");
+    setYoutubeSubheading("");
     setYoutubeThumbnail("");
     setYoutubeAllowedEmails("");
     setEditingYoutubeVideoId(null);
@@ -380,6 +393,8 @@ export default function Admin() {
       const payload = {
         title: youtubeTitle,
         videoId: youtubeVideoId,
+        category: youtubeCategory,
+        subheading: youtubeSubheading,
         thumbnail: youtubeThumbnail,
         allowedEmails: parseYoutubeAllowedEmails(),
       };
@@ -433,6 +448,8 @@ export default function Admin() {
     setEditingYoutubeVideoId(video._id);
     setYoutubeTitle(video.title || "");
     setYoutubeVideoId("");
+    setYoutubeCategory(video.category || "");
+    setYoutubeSubheading(video.subheading || "");
     setYoutubeThumbnail(video.thumbnail || "");
     setYoutubeAllowedEmails(
       (video.allowedEmails || []).join(", ")
@@ -530,18 +547,34 @@ export default function Admin() {
     setVideoPage(1);
   };
 
+  const filteredYoutubeVideos = youtubeVideos.filter((v) =>
+    v.title?.toLowerCase().includes(youtubeSearchTerm.toLowerCase()) ||
+    v.category?.toLowerCase().includes(youtubeSearchTerm.toLowerCase()) ||
+    v.subheading?.toLowerCase().includes(youtubeSearchTerm.toLowerCase()) ||
+    v.allowedEmails?.some((email) =>
+      email.toLowerCase().includes(youtubeSearchTerm.toLowerCase())
+    )
+  );
+  const totalYoutubePages = Math.ceil(filteredYoutubeVideos.length / VIDEOS_PER_PAGE) || 1;
+  const displayedYoutubeVideos = filteredYoutubeVideos.slice((youtubePage - 1) * VIDEOS_PER_PAGE, youtubePage * VIDEOS_PER_PAGE);
+
+  const handleYoutubeSearch = (e) => {
+    setYoutubeSearchTerm(e.target.value);
+    setYoutubePage(1);
+  };
+
   return (
 
     <div className="min-h-screen text-white relative bg-transparent">
       <ThreeBackground />
       <Navbar />
 
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
 
-        <div className="mb-8 flex gap-4 border-b border-gray-800 pb-4">
+        <div className="mb-6 flex gap-3 overflow-x-auto border-b border-gray-800 pb-4 sm:mb-8 sm:gap-4">
           <button
             onClick={() => setActiveTab("users")}
-            className={`px-4 py-2 font-semibold transition-colors ${
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
               activeTab === "users" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
             }`}
           >
@@ -549,7 +582,7 @@ export default function Admin() {
           </button>
           <button
             onClick={() => setActiveTab("content")}
-            className={`px-4 py-2 font-semibold transition-colors ${
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
               activeTab === "content" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
             }`}
           >
@@ -557,7 +590,7 @@ export default function Admin() {
           </button>
           <button
             onClick={() => setActiveTab("youtube")}
-            className={`px-4 py-2 font-semibold transition-colors ${
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
               activeTab === "youtube" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
             }`}
           >
@@ -565,7 +598,7 @@ export default function Admin() {
           </button>
           <button
             onClick={() => { setActiveTab("videoForm"); resetForm(); }}
-            className={`px-4 py-2 font-semibold transition-colors ${
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
               activeTab === "videoForm" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
             }`}
           >
@@ -573,7 +606,7 @@ export default function Admin() {
           </button>
           <button
             onClick={() => { setActiveTab("youtubeForm"); resetYoutubeForm(); }}
-            className={`px-4 py-2 font-semibold transition-colors ${
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
               activeTab === "youtubeForm" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
             }`}
           >
@@ -585,15 +618,15 @@ export default function Admin() {
 
         {activeTab === "users" && (
         <div className="mb-8">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <h2 className="text-3xl font-bold">
+          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-2xl font-bold sm:text-3xl">
               Manage Users
             </h2>
 
             <button
               type="button"
               onClick={fetchUsers}
-              className="rounded bg-gray-800 px-4 py-2 font-semibold"
+              className="w-full rounded bg-gray-800 px-4 py-2 font-semibold sm:w-auto"
             >
               Refresh
             </button>
@@ -701,7 +734,7 @@ export default function Admin() {
               </table>
             </div>
 
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-sm text-gray-400">
                   Showing {filteredUsers.length === 0 ? 0 : ((userPage - 1) * USERS_PER_PAGE) + 1} to {Math.min(userPage * USERS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} users
                 </span>
@@ -782,15 +815,15 @@ export default function Admin() {
 
         {activeTab === "content" && (
         <div className="mb-8">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <h2 className="text-3xl font-bold">
+          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-2xl font-bold sm:text-3xl">
               Manage Content
             </h2>
 
             <button
               type="button"
               onClick={fetchVideos}
-              className="rounded bg-gray-800 px-4 py-2 font-semibold"
+              className="w-full rounded bg-gray-800 px-4 py-2 font-semibold sm:w-auto"
             >
               Refresh
             </button>
@@ -834,16 +867,16 @@ export default function Admin() {
             {displayedVideos.map((video) => (
               <div
                 key={video._id}
-                className="grid gap-4 bg-gray-900 p-4 rounded-xl md:grid-cols-[140px_1fr_180px]"
+                className="grid gap-4 rounded-xl bg-gray-900 p-4 md:grid-cols-[140px_1fr_180px]"
               >
                 <img
                   src={video.thumbnail}
                   alt={video.title}
-                  className="h-[90px] w-full rounded object-cover md:w-[140px]"
+                  className="aspect-video w-full rounded object-cover md:h-[90px] md:w-[140px]"
                 />
 
                 <div>
-                  <h3 className="text-xl font-semibold">
+                  <h3 className="text-lg font-semibold sm:text-xl">
                     {video.title}
                   </h3>
 
@@ -904,7 +937,7 @@ export default function Admin() {
           </div>
 
           {videos.length > 0 && (
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-sm text-gray-400">
                 Showing {filteredVideos.length === 0 ? 0 : ((videoPage - 1) * VIDEOS_PER_PAGE) + 1} to {Math.min(videoPage * VIDEOS_PER_PAGE, filteredVideos.length)} of {filteredVideos.length} videos
               </span>
@@ -931,15 +964,15 @@ export default function Admin() {
 
         {activeTab === "youtube" && (
           <div className="mb-8">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <h2 className="text-3xl font-bold">
+            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-2xl font-bold sm:text-3xl">
                 Manage YouTube Videos
               </h2>
 
               <button
                 type="button"
                 onClick={fetchYoutubeVideos}
-                className="rounded bg-gray-800 px-4 py-2 font-semibold"
+                className="w-full rounded bg-gray-800 px-4 py-2 font-semibold sm:w-auto"
               >
                 Refresh
               </button>
@@ -965,8 +998,20 @@ export default function Admin() {
                 </p>
               )}
 
+            {youtubeVideos.length > 0 && (
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Search YouTube videos by title, category, subheading, or email..."
+                  className="w-full max-w-md rounded bg-gray-800 p-3 text-sm focus:border-red-500 focus:outline-none"
+                  value={youtubeSearchTerm}
+                  onChange={handleYoutubeSearch}
+                />
+              </div>
+            )}
+
             <div className="grid gap-4">
-              {youtubeVideos.map((video) => (
+              {displayedYoutubeVideos.map((video) => (
                 <div
                   key={video._id}
                   className="grid gap-4 rounded-xl bg-gray-900 p-4 md:grid-cols-[140px_1fr_180px]"
@@ -974,16 +1019,22 @@ export default function Admin() {
                   <img
                     src={video.thumbnail}
                     alt={video.title}
-                    className="h-[90px] w-full rounded object-cover md:w-[140px]"
+                    className="aspect-video w-full rounded object-cover md:h-[90px] md:w-[140px]"
                   />
 
                   <div>
-                    <h3 className="text-xl font-semibold">
+                    <h3 className="text-lg font-semibold sm:text-xl">
                       {video.title}
                     </h3>
 
                     <p className="mt-2 text-sm text-gray-500">
                       Type: Protected YouTube
+                    </p>
+
+                    <p className="mt-2 text-sm text-gray-500">
+                      {video.category || "YouTube"} /{" "}
+                      {video.subheading ||
+                        "Protected YouTube Videos"}
                     </p>
 
                     <p className="mt-2 break-all text-sm text-gray-500">
@@ -1018,16 +1069,40 @@ export default function Admin() {
                 </div>
               ))}
             </div>
+
+            {youtubeVideos.length > 0 && (
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-sm text-gray-400">
+                  Showing {filteredYoutubeVideos.length === 0 ? 0 : ((youtubePage - 1) * VIDEOS_PER_PAGE) + 1} to {Math.min(youtubePage * VIDEOS_PER_PAGE, filteredYoutubeVideos.length)} of {filteredYoutubeVideos.length} YouTube videos
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    disabled={youtubePage === 1}
+                    onClick={() => setYoutubePage((p) => p - 1)}
+                    className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    disabled={youtubePage === totalYoutubePages}
+                    onClick={() => setYoutubePage((p) => p + 1)}
+                    className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === "videoForm" && (
         <form
           onSubmit={handleSubmit}
-          className="mx-auto max-w-xl bg-gray-900 p-6 rounded-xl"
+          className="mx-auto max-w-xl rounded-xl bg-gray-900 p-4 sm:p-6"
         >
 
-          <h1 className="text-3xl font-bold mb-6">
+          <h1 className="mb-6 text-2xl font-bold sm:text-3xl">
             {editingVideoId
               ? "Edit Video"
               : "Add Video"}
@@ -1145,9 +1220,9 @@ export default function Admin() {
         {activeTab === "youtubeForm" && (
           <form
             onSubmit={handleYoutubeSubmit}
-            className="mx-auto max-w-xl rounded-xl bg-gray-900 p-6"
+            className="mx-auto max-w-xl rounded-xl bg-gray-900 p-4 sm:p-6"
           >
-            <h1 className="mb-6 text-3xl font-bold">
+            <h1 className="mb-6 text-2xl font-bold sm:text-3xl">
               {editingYoutubeVideoId
                 ? "Edit YouTube Video"
                 : "Add YouTube Video"}
@@ -1178,6 +1253,26 @@ export default function Admin() {
               value={youtubeVideoId}
               onChange={(e) =>
                 setYoutubeVideoId(e.target.value)
+              }
+            />
+
+            <input
+              type="text"
+              placeholder="Category Type"
+              className="mb-4 w-full rounded bg-gray-800 p-3"
+              value={youtubeCategory}
+              onChange={(e) =>
+                setYoutubeCategory(e.target.value)
+              }
+            />
+
+            <input
+              type="text"
+              placeholder="Subheading"
+              className="mb-4 w-full rounded bg-gray-800 p-3"
+              value={youtubeSubheading}
+              onChange={(e) =>
+                setYoutubeSubheading(e.target.value)
               }
             />
 
