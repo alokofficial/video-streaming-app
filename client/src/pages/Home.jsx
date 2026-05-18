@@ -8,6 +8,11 @@ import ThreeBackground from "../components/ThreeBackground";
 
 import API from "../services/api";
 
+const DEFAULT_DRIVE_THUMBNAIL =
+  "https://imgs.search.brave.com/aJbpA-62AKAWzzdV3gLEKFsRmBL5DyMouzgU0y1RQO0/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMjIz/MzAxMjU5Ny9waG90/by9iZXJsaW4tZ2Vy/bWFueS1pbi10aGlz/LXBob3RvLWlsbHVz/dHJhdGlvbi10aGUt/Z29vZ2xlLWRyaXZl/LWFwcC1pcy1kaXNw/bGF5ZWQtb24tdGhl/LXNjcmVlbi1vZi5q/cGc_cz02MTJ4NjEy/Jnc9MCZrPTIwJmM9/aERiNVVtOHlRM0Vs/VkJrMFU5a04zZ3dr/QS1GNnNnS3RON3Uw/ZVRpdGV5WT0";
+const DEFAULT_YOUTUBE_THUMBNAIL =
+  "https://imgs.search.brave.com/vnc7fAs0ZfAoGWxprz3aDlu0OOjyvDvGBYmM32_AynA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pbWFn/ZXMudW5zcGxhc2gu/Y29tL3Bob3RvLTE2/MTExNjI2MTY0NzUt/NDZiNjM1Y2I2ODY4/P2ZtPWpwZyZxPTYw/Jnc9MzAwMCZhdXRv/PWZvcm1hdCZmaXQ9/Y3JvcCZpeGxpYj1y/Yi00LjEuMCZpeGlk/PU0zd3hNakEzZkRC/OE1IeHpaV0Z5WTJo/OE1ueDhlVzkxZEhW/aVpTVXlNR3h2WjI5/OFpXNThNSHg4TUh4/OGZEQT0";
+
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const [youtubeVideos, setYoutubeVideos] =
@@ -162,11 +167,21 @@ export default function Home() {
                               to={`/watch/${video.driveFileId}`}
                             >
                               <div className="overflow-hidden rounded-lg bg-gray-900 transition duration-300 hover:scale-105">
-                                <img
-                                  src={video.thumbnail}
-                                  alt={video.title}
-                                  className="aspect-video w-full object-cover"
-                                />
+                                <div className="relative">
+                                  <img
+                                    src={
+                                      video.thumbnail ||
+                                      DEFAULT_DRIVE_THUMBNAIL
+                                    }
+                                    alt={video.title}
+                                    className="aspect-video w-full object-cover"
+                                  />
+
+                                  <span className="absolute bottom-3 right-3 max-w-[calc(100%-1.5rem)] truncate rounded bg-blue-600 px-2 py-1 text-xs font-bold">
+                                    {video.subheading ||
+                                      subheading}
+                                  </span>
+                                </div>
 
                                 <div className="p-4">
                                   <h4 className="text-lg font-semibold sm:text-xl">
@@ -217,7 +232,10 @@ export default function Home() {
                         <div className="overflow-hidden rounded-lg bg-gray-900 transition duration-300 hover:scale-105">
                           <div className="relative">
                             <img
-                              src={video.thumbnail}
+                              src={
+                                video.thumbnail ||
+                                DEFAULT_YOUTUBE_THUMBNAIL
+                              }
                               alt={video.title}
                               className="aspect-video w-full object-cover"
                             />

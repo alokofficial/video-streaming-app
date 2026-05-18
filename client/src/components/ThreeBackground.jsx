@@ -123,10 +123,11 @@ export default function ThreeBackground() {
 
     // 8. Animation Loop
     let animationFrameId;
-    const clock = new THREE.Clock();
+    const startTime = performance.now();
 
     const animate = () => {
-      const time = clock.getElapsedTime();
+      const time =
+        (performance.now() - startTime) / 1000;
 
       // Slowly rotate the entire cloud field to simulate floating
       cloudParticles.rotation.y = time * 0.02;

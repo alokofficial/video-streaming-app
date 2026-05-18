@@ -358,7 +358,8 @@ export default function Admin() {
         category,
         subheading,
         driveFileId,
-        thumbnail,
+        thumbnail:
+          thumbnail || DEFAULT_DRIVE_THUMBNAIL,
         allowedEmails: parseAllowedEmails(),
         qualities: parseQualities(),
       };
@@ -398,7 +399,9 @@ export default function Admin() {
         videoId: youtubeVideoId,
         category: youtubeCategory,
         subheading: youtubeSubheading,
-        thumbnail: youtubeThumbnail,
+        thumbnail:
+          youtubeThumbnail ||
+          DEFAULT_YOUTUBE_THUMBNAIL,
         allowedEmails: parseYoutubeAllowedEmails(),
       };
 
@@ -877,7 +880,10 @@ export default function Admin() {
                 className="grid gap-4 rounded-xl bg-gray-900 p-4 md:grid-cols-[140px_1fr_180px]"
               >
                 <img
-                  src={video.thumbnail}
+                  src={
+                    video.thumbnail ||
+                    DEFAULT_DRIVE_THUMBNAIL
+                  }
                   alt={video.title}
                   className="aspect-video w-full rounded object-cover md:h-[90px] md:w-[140px]"
                 />
@@ -1024,7 +1030,10 @@ export default function Admin() {
                   className="grid gap-4 rounded-xl bg-gray-900 p-4 md:grid-cols-[140px_1fr_180px]"
                 >
                   <img
-                    src={video.thumbnail}
+                    src={
+                      video.thumbnail ||
+                      DEFAULT_YOUTUBE_THUMBNAIL
+                    }
                     alt={video.title}
                     className="aspect-video w-full rounded object-cover md:h-[90px] md:w-[140px]"
                   />
