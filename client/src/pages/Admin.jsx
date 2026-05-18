@@ -39,6 +39,10 @@ const fieldLimits = {
 
 const USERS_PER_PAGE = 10;
 const VIDEOS_PER_PAGE = 5;
+const DEFAULT_DRIVE_THUMBNAIL =
+  "https://imgs.search.brave.com/aJbpA-62AKAWzzdV3gLEKFsRmBL5DyMouzgU0y1RQO0/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMjIz/MzAxMjU5Ny9waG90/by9iZXJsaW4tZ2Vy/bWFueS1pbi10aGlz/LXBob3RvLWlsbHVz/dHJhdGlvbi10aGUt/Z29vZ2xlLWRyaXZl/LWFwcC1pcy1kaXNw/bGF5ZWQtb24tdGhl/LXNjcmVlbi1vZi5q/cGc_cz02MTJ4NjEy/Jnc9MCZrPTIwJmM9/aERiNVVtOHlRM0Vs/VkJrMFU5a04zZ3dr/QS1GNnNnS3RON3Uw/ZVRpdGV5WT0";
+const DEFAULT_YOUTUBE_THUMBNAIL =
+  "https://imgs.search.brave.com/vnc7fAs0ZfAoGWxprz3aDlu0OOjyvDvGBYmM32_AynA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pbWFn/ZXMudW5zcGxhc2gu/Y29tL3Bob3RvLTE2/MTExNjI2MTY0NzUt/NDZiNjM1Y2I2ODY4/P2ZtPWpwZyZxPTYw/Jnc9MzAwMCZhdXRv/PWZvcm1hdCZmaXQ9/Y3JvcCZpeGxpYj1y/Yi00LjEuMCZpeGlk/PU0zd3hNakEzZkRC/OE1IeHpaV0Z5WTJo/OE1ueDhlVzkxZEhW/aVpTVXlNR3h2WjI5/OFpXNThNSHg4TUh4/OGZEQT0";
 
 export default function Admin() {
   const { user: currentUser } = useAuth();
@@ -49,11 +53,10 @@ export default function Admin() {
     category: "",
     subheading: "",
     driveFileId: "",
-    thumbnail: "",
+    thumbnail: DEFAULT_DRIVE_THUMBNAIL,
     allowedEmails: "",
     qualities: "",
   };
-  const imgURL="https://imgs.search.brave.com/xInxt8pmooq-7OgbKiGyNJcRnxRKcNQ5i02U56G-ZWo/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvMTQx/Mzk5NzgwNS92ZWN0/b3Ivc29mdHdhcmUt/YXBwbGljYXRpb24t/dGVzdGluZy1jb25j/ZXB0LTNkLWlsbHVz/dHJhdGlvbi5qcGc_/cz02MTJ4NjEyJnc9/MCZrPTIwJmM9ZFll/WFowNzJyaElTWWkx/c3k3R3RONFlXSVox/VnBYRnhXQXppcTFx/QTI3cz0"
 
   const [videos, setVideos] =
     useState([]);
@@ -116,7 +119,7 @@ export default function Admin() {
     useState("");
 
   const [thumbnail, setThumbnail] =
-    useState(imgURL);
+    useState(DEFAULT_DRIVE_THUMBNAIL);
 
   const [allowedEmails, setAllowedEmails] =
     useState("");
@@ -139,7 +142,7 @@ export default function Admin() {
   ] = useState("");
 
   const [youtubeThumbnail, setYoutubeThumbnail] =
-    useState("");
+    useState(DEFAULT_YOUTUBE_THUMBNAIL);
 
   const [
     youtubeAllowedEmails,
@@ -229,7 +232,7 @@ export default function Admin() {
     setYoutubeVideoId("");
     setYoutubeCategory("");
     setYoutubeSubheading("");
-    setYoutubeThumbnail("");
+    setYoutubeThumbnail(DEFAULT_YOUTUBE_THUMBNAIL);
     setYoutubeAllowedEmails("");
     setEditingYoutubeVideoId(null);
   };
@@ -429,7 +432,9 @@ export default function Admin() {
     setCategory(video.category || "");
     setSubheading(video.subheading || "");
     setDriveFileId(video.driveFileId);
-    setThumbnail(video.thumbnail || "");
+    setThumbnail(
+      video.thumbnail || DEFAULT_DRIVE_THUMBNAIL
+    );
     setAllowedEmails(
       (video.allowedEmails || []).join(", ")
     );
@@ -450,7 +455,9 @@ export default function Admin() {
     setYoutubeVideoId("");
     setYoutubeCategory(video.category || "");
     setYoutubeSubheading(video.subheading || "");
-    setYoutubeThumbnail(video.thumbnail || "");
+    setYoutubeThumbnail(
+      video.thumbnail || DEFAULT_YOUTUBE_THUMBNAIL
+    );
     setYoutubeAllowedEmails(
       (video.allowedEmails || []).join(", ")
     );
