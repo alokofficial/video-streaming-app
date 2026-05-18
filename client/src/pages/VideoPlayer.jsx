@@ -645,7 +645,7 @@ export default function VideoPlayer() {
             )}
 
             <div
-              className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 transition-opacity duration-300 ${
+              className={`absolute inset-x-0 bottom-0 bg-linear-to-t from-black via-black/80 to-transparent p-4 transition-opacity duration-300 ${
                 isFullscreen && !showControls
                   ? "pointer-events-none opacity-0"
                   : "opacity-100"
