@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import videoRoutes from "./routes/videoRoutes.js";
+import youtubeRoutes from "./routes/youtubeRoutes.js";
 
 
 dotenv.config();
@@ -22,8 +23,8 @@ app.use(
 );
 app.use(express.json());
 app.use("/api/videos", videoRoutes);
-
 app.use("/api/auth", authRoutes);
+app.use("/api/youtube", youtubeRoutes);
 
 app.get("/", (req, res) => {
   res.send("API Running...");
