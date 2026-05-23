@@ -4,7 +4,7 @@ import driveService from "../config/googleDrive.js";
 
 const metadataCache = new Map();
 const METADATA_CACHE_MS = 5 * 60 * 1000;
-const STREAM_CHUNK_SIZE = 16 * 1024 * 1024;
+const STREAM_CHUNK_SIZE = 4 * 1024 * 1024;
 
 const getCachedFileMetadata = async (fileId) => {
   const cached = metadataCache.get(fileId);
@@ -191,6 +191,7 @@ const pipeDriveRange = async ({
       responseType: "stream",
       headers: {
         Range: `bytes=${start}-${end}`,
+        "Accept-Encoding": "identity",
       },
     }
   );
@@ -307,9 +308,14 @@ export const streamVideo = async (
     }
 
     const range = req.headers.range;
+    const contentType =
+      metadata.mimeType?.startsWith("video/")
+        ? metadata.mimeType
+        : "video/mp4";
+
     const sharedVideoHeaders = {
       "Accept-Ranges": "bytes",
-      "Content-Type": metadata.mimeType,
+      "Content-Type": contentType,
       "Content-Disposition": "inline",
       "Cache-Control":
         "no-store, no-cache, must-revalidate, private",

@@ -623,7 +623,7 @@ export default function VideoPlayer() {
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 playsInline
-                preload="metadata"
+                preload="auto"
                 className={`h-full w-full bg-black ${videoObjectClass}`}
                 src={getStreamUrl(
                   selectedFileId,
