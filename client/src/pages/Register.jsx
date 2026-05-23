@@ -39,7 +39,9 @@ export default function Register() {
 
       login(data.token, data.user);
 
-      navigate("/");
+      navigate("/", {
+        replace: true,
+      });
 
     } catch (error) {
 
@@ -56,7 +58,7 @@ export default function Register() {
 
   return (
 
-    <div className="min-h-screen bg-black text-white">
+    <div className="app-page">
 
       <div className="grid min-h-screen lg:grid-cols-[1fr_460px]">
 
@@ -74,13 +76,13 @@ export default function Register() {
             <h2 className="text-6xl font-bold leading-tight">
               Create your account and begin instantly.
             </h2>
-            <p className="mt-6 text-lg text-gray-300">
+            <p className="mt-6 text-lg app-muted">
               After registration, you will be taken
               directly to your video library.
             </p>
           </div>
 
-          <p className="text-sm text-gray-400">
+          <p className="text-sm app-muted">
             Private video access, made simple
           </p>
         </div>
@@ -88,7 +90,7 @@ export default function Register() {
         <div className="flex items-center justify-center p-6">
           <form
             onSubmit={handleRegister}
-            className="w-full max-w-md rounded-2xl border border-gray-800 bg-gray-950 p-8 shadow-2xl"
+            className="w-full max-w-md rounded-2xl border app-border app-panel p-8 shadow-2xl"
           >
 
             <div className="mb-8">
@@ -98,7 +100,7 @@ export default function Register() {
               <h1 className="mt-2 text-4xl font-bold">
                 Register
               </h1>
-              <p className="mt-3 text-gray-400">
+              <p className="mt-3 app-muted">
                 Create your account to continue.
               </p>
             </div>
@@ -109,39 +111,39 @@ export default function Register() {
               </p>
             )}
 
-            <label className="mb-2 block text-sm text-gray-300">
+            <label className="mb-2 block text-sm app-muted">
               Name
             </label>
             <input
               type="text"
               placeholder="Your name"
-              className="mb-5 w-full rounded-lg border border-gray-800 bg-gray-900 p-3 outline-none transition focus:border-blue-500"
+              className="mb-5 w-full rounded-lg border app-border app-surface p-3 outline-none transition focus:border-blue-500"
               value={name}
               onChange={(e) =>
                 setName(e.target.value)
               }
             />
 
-            <label className="mb-2 block text-sm text-gray-300">
+            <label className="mb-2 block text-sm app-muted">
               Email
             </label>
             <input
               type="email"
               placeholder="you@example.com"
-              className="mb-5 w-full rounded-lg border border-gray-800 bg-gray-900 p-3 outline-none transition focus:border-blue-500"
+              className="mb-5 w-full rounded-lg border app-border app-surface p-3 outline-none transition focus:border-blue-500"
               value={email}
               onChange={(e) =>
                 setEmail(e.target.value)
               }
             />
 
-            <label className="mb-2 block text-sm text-gray-300">
+            <label className="mb-2 block text-sm app-muted">
               Password
             </label>
             <input
               type="password"
               placeholder="Create password"
-              className="mb-6 w-full rounded-lg border border-gray-800 bg-gray-900 p-3 outline-none transition focus:border-blue-500"
+              className="mb-6 w-full rounded-lg border app-border app-surface p-3 outline-none transition focus:border-blue-500"
               value={password}
               onChange={(e) =>
                 setPassword(e.target.value)
@@ -158,7 +160,7 @@ export default function Register() {
                 : "Create Account"}
             </button>
 
-            <p className="mt-6 text-center text-gray-400">
+            <p className="mt-6 text-center app-muted">
 
               Already have an account?{" "}
 

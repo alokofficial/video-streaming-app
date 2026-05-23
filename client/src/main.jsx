@@ -7,6 +7,7 @@ import App from "./App";
 import "./index.css";
 
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 ReactDOM.createRoot(
   document.getElementById("root")
@@ -14,9 +15,11 @@ ReactDOM.createRoot(
 
   <React.StrictMode>
 
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </ThemeProvider>
 
   </React.StrictMode>
 );

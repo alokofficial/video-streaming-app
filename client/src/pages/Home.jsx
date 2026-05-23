@@ -19,6 +19,13 @@ const DEFAULT_YOUTUBE_THUMBNAIL =
   "https://imgs.search.brave.com/vnc7fAs0ZfAoGWxprz3aDlu0OOjyvDvGBYmM32_AynA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pbWFn/ZXMudW5zcGxhc2gu/Y29tL3Bob3RvLTE2/MTExNjI2MTY0NzUt/NDZiNjM1Y2I2ODY4/P2ZtPWpwZyZxPTYw/Jnc9MzAwMCZhdXRv/PWZvcm1hdCZmaXQ9/Y3JvcCZpeGxpYj1y/Yi00LjEuMCZpeGlk/PU0zd3hNakEzZkRC/OE1IeHpaV0Z5WTJo/OE1ueDhlVzkxZEhW/aVpTVXlNR3h2WjI5/OFpXNThNSHg4TUh4/OGZEQT0";
 const HEADING_ORDER_STORAGE_KEY =
   "homepageHeadingOrder";
+const getDateValue = (value) => {
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? 0
+    : date.getTime();
+};
 
 export default function Home() {
   const { isAdmin } = useAuth();
@@ -29,6 +36,9 @@ export default function Home() {
   const [selectedUserId, setSelectedUserId] =
     useState("");
   const [activeTab, setActiveTab] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOption, setSortOption] =
+    useState("default");
   const [draggedCategory, setDraggedCategory] =
     useState("");
   const [hasLoadedHeadingOrder, setHasLoadedHeadingOrder] =
@@ -102,7 +112,57 @@ export default function Home() {
     })),
   ];
 
-  const groupedContent = contentItems.reduce(
+  const normalizedSearchTerm = searchTerm
+    .trim()
+    .toLowerCase();
+  const searchedContentItems = normalizedSearchTerm
+    ? contentItems.filter((item) => {
+        return [
+          item.title,
+          item.description,
+          item.category,
+          item.subheading,
+          item.contentType,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearchTerm);
+      })
+    : contentItems;
+  const sortedContentItems = [
+    ...searchedContentItems,
+  ].sort((a, b) => {
+    if (sortOption === "name") {
+      return (a.title || "").localeCompare(
+        b.title || ""
+      );
+    }
+
+    if (sortOption === "createdNewest") {
+      return (
+        getDateValue(b.createdAt) -
+        getDateValue(a.createdAt)
+      );
+    }
+
+    if (sortOption === "createdOldest") {
+      return (
+        getDateValue(a.createdAt) -
+        getDateValue(b.createdAt)
+      );
+    }
+
+    if (sortOption === "modifiedNewest") {
+      return (
+        getDateValue(b.updatedAt) -
+        getDateValue(a.updatedAt)
+      );
+    }
+
+    return 0;
+  });
+
+  const groupedContent = sortedContentItems.reduce(
     (groups, item) => {
       if (!groups[item.category]) {
         groups[item.category] = [];
@@ -115,6 +175,13 @@ export default function Home() {
     {}
   );
 
+  const allBaseCategories = [
+    ...new Set(
+      contentItems.map((item) => item.category)
+    ),
+  ];
+  const allBaseCategoryKey =
+    allBaseCategories.join("|");
   const baseCategories = Object.keys(groupedContent);
   const categories = [
     ...categoryOrder.filter((category) =>
@@ -167,6 +234,10 @@ export default function Home() {
 
     persistCategoryOrder(nextOrder);
   };
+
+  const hasVisibleContent = contentItems.length > 0;
+  const hasSearchResults =
+    sortedContentItems.length > 0;
 
   const fetchVideos = useCallback(async () => {
     try {
@@ -223,11 +294,16 @@ export default function Home() {
       return;
     }
 
+    const currentBaseCategories =
+      allBaseCategoryKey
+        ? allBaseCategoryKey.split("|")
+        : [];
+
     const nextOrder = [
       ...categoryOrder.filter((category) =>
-        baseCategories.includes(category)
+        currentBaseCategories.includes(category)
       ),
-      ...baseCategories.filter(
+      ...currentBaseCategories.filter(
         (category) =>
           !categoryOrder.includes(category)
       ),
@@ -239,13 +315,13 @@ export default function Home() {
       persistCategoryOrder(nextOrder);
     }
   }, [
-    baseCategories,
+    allBaseCategoryKey,
     categoryOrder,
     hasLoadedHeadingOrder,
   ]);
 
   return (
-    <div className="min-h-screen text-white relative bg-transparent">
+    <div className="app-transparent-page relative">
       <ThreeBackground />
       <Navbar
         adminViewUsers={users}
@@ -255,32 +331,86 @@ export default function Home() {
       />
 
       <div className="p-4 sm:p-6">
-        <div className="mb-6 flex items-center justify-between sm:mb-8">
+        <div className="mb-6 flex flex-col gap-4 sm:mb-8 lg:flex-row lg:items-center lg:justify-between">
           <h1 className="text-3xl font-bold sm:text-4xl">
             {selectedUser
               ? `${selectedUser.name}'s Library`
               : "Contents"}
           </h1>
+
+          <div className="flex w-full flex-col gap-3 sm:flex-row lg:max-w-2xl">
+            <select
+              aria-label="Sort content"
+              value={sortOption}
+              onChange={(e) =>
+                setSortOption(e.target.value)
+              }
+              className="rounded-lg border app-border app-surface px-3 py-3 text-sm outline-none transition focus:border-red-500 sm:w-48"
+            >
+              <option value="default">
+                Sort: Default
+              </option>
+              <option value="name">
+                Name A-Z
+              </option>
+              <option value="createdNewest">
+                Created: Newest
+              </option>
+              <option value="createdOldest">
+                Created: Oldest
+              </option>
+              <option value="modifiedNewest">
+                Modified: Recent
+              </option>
+            </select>
+
+            <div className="relative min-w-0 flex-1">
+              <input
+                type="search"
+                placeholder="Search all content..."
+                value={searchTerm}
+                onChange={(e) =>
+                  setSearchTerm(e.target.value)
+                }
+                className="w-full rounded-lg border app-border app-surface px-4 py-3 pr-10 text-sm outline-none transition focus:border-red-500"
+              />
+
+              {searchTerm && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full app-soft-surface text-sm font-bold app-muted hover:bg-gray-700"
+                >
+                  x
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
-        {visibleVideos.length === 0 &&
-          visibleYoutubeVideos.length === 0 && (
-          <p className="text-gray-400">
+        {!hasVisibleContent && (
+          <p className="app-muted">
             {selectedUser
               ? "No videos available for this user."
               : "No videos available for your account."}
           </p>
         )}
 
-        {(visibleVideos.length > 0 ||
-          visibleYoutubeVideos.length > 0) && (
-          <div className="mb-8 flex gap-3 overflow-x-auto border-b border-gray-800 pb-4 sm:flex-wrap sm:gap-4">
+        {hasVisibleContent && !hasSearchResults && (
+          <p className="app-muted">
+            No content found for "{searchTerm}".
+          </p>
+        )}
+
+        {hasSearchResults && (
+          <div className="mb-8 flex gap-3 overflow-x-auto border-b app-border pb-4 sm:flex-wrap sm:gap-4">
             <button
               onClick={() => setActiveTab("All")}
               className={`shrink-0 px-4 py-2 font-semibold transition-colors ${
                 activeTab === "All"
                   ? "border-b-2 border-red-500 text-red-500"
-                  : "text-gray-400 hover:text-white"
+                  : "app-muted hover:text-white"
               }`}
             >
               All
@@ -310,12 +440,12 @@ export default function Home() {
                 className={`shrink-0 rounded px-4 py-2 font-semibold transition-colors ${
                   activeTab === category
                     ? "border-b-2 border-red-500 text-red-500"
-                    : "text-gray-400 hover:text-white"
+                    : "app-muted hover:text-white"
                 } ${
                   "cursor-grab active:cursor-grabbing"
                 } ${
                   draggedCategory === category
-                    ? "bg-gray-800 opacity-60"
+                    ? "app-soft-surface opacity-60"
                     : ""
                 }`}
               >
@@ -341,7 +471,7 @@ export default function Home() {
                               key={`${item.contentType}-${item._id}`}
                               to={item.href}
                             >
-                              <div className="overflow-hidden rounded-lg bg-gray-900 transition duration-300 hover:scale-105">
+                              <div className="overflow-hidden rounded-lg app-surface transition duration-300 hover:scale-105">
                                 <div className="relative">
                                   <img
                                     src={item.thumbnail}
@@ -369,7 +499,7 @@ export default function Home() {
                                     {item.title}
                                   </h4>
 
-                                  <p className="mt-2 text-gray-400">
+                                  <p className="mt-2 app-muted">
                                     {item.description}
                                   </p>
                                 </div>

@@ -612,17 +612,17 @@ export default function Admin() {
 
   return (
 
-    <div className="min-h-screen text-white relative bg-transparent">
+    <div className="app-transparent-page relative">
       <ThreeBackground />
       <Navbar />
 
       <div className="p-4 sm:p-6">
 
-        <div className="mb-6 flex gap-3 overflow-x-auto border-b border-gray-800 pb-4 sm:mb-8 sm:gap-4">
+        <div className="mb-6 flex gap-3 overflow-x-auto border-b app-border pb-4 sm:mb-8 sm:gap-4">
           <button
             onClick={() => setActiveTab("users")}
             className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "users" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
+              activeTab === "users" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
             }`}
           >
             Manage Users
@@ -630,7 +630,7 @@ export default function Admin() {
           <button
             onClick={() => setActiveTab("content")}
             className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "content" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
+              activeTab === "content" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
             }`}
           >
             Manage Content
@@ -638,7 +638,7 @@ export default function Admin() {
           <button
             onClick={() => setActiveTab("youtube")}
             className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "youtube" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
+              activeTab === "youtube" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
             }`}
           >
             Manage YouTube
@@ -646,7 +646,7 @@ export default function Admin() {
           <button
             onClick={() => { setActiveTab("videoForm"); resetForm(); }}
             className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "videoForm" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
+              activeTab === "videoForm" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
             }`}
           >
             {editingVideoId ? "Edit Video" : "Add Video"}
@@ -654,7 +654,7 @@ export default function Admin() {
           <button
             onClick={() => { setActiveTab("youtubeForm"); resetYoutubeForm(); }}
             className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "youtubeForm" ? "text-red-500 border-b-2 border-red-500" : "text-gray-400 hover:text-white"
+              activeTab === "youtubeForm" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
             }`}
           >
             {editingYoutubeVideoId
@@ -673,14 +673,14 @@ export default function Admin() {
             <button
               type="button"
               onClick={fetchUsers}
-              className="w-full rounded bg-gray-800 px-4 py-2 font-semibold sm:w-auto"
+              className="w-full rounded app-soft-surface px-4 py-2 font-semibold sm:w-auto"
             >
               Refresh
             </button>
           </div>
 
           {isLoadingUsers && (
-            <p className="text-gray-400">
+            <p className="app-muted">
               Loading users...
             </p>
           )}
@@ -694,7 +694,7 @@ export default function Admin() {
           {!isLoadingUsers &&
             !usersError &&
             users.length === 0 && (
-              <p className="text-gray-400">
+              <p className="app-muted">
                 No users registered yet.
               </p>
             )}
@@ -705,14 +705,14 @@ export default function Admin() {
                 <input
                   type="text"
                   placeholder="Search users by name, email, or role..."
-                  className="w-full max-w-md rounded bg-gray-800 p-3 text-sm focus:border-red-500 focus:outline-none"
+                  className="w-full max-w-md rounded app-soft-surface p-3 text-sm focus:border-red-500 focus:outline-none"
                   value={userSearchTerm}
                   onChange={handleUserSearch}
                 />
               </div>
-              <div className="overflow-x-auto rounded-xl bg-gray-900">
+              <div className="overflow-x-auto rounded-xl app-panel">
               <table className="w-full min-w-[760px] text-left text-sm">
-                <thead className="bg-gray-800 text-gray-300">
+                <thead className="app-soft-surface app-muted">
                   <tr>
                     <th className="p-4">User</th>
                     <th className="p-4">Email</th>
@@ -730,12 +730,12 @@ export default function Admin() {
                   {displayedUsers.map((user) => (
                     <tr
                       key={user.id}
-                      className="border-t border-gray-800"
+                      className="border-t app-border"
                     >
                       <td className="p-4">
                         <button
                           type="button"
-                          className="flex items-center gap-3 rounded-full bg-gray-800 px-3 py-2 text-left font-semibold transition hover:bg-gray-700"
+                          className="flex items-center gap-3 rounded-full app-soft-surface px-3 py-2 text-left font-semibold transition hover:bg-gray-700"
                         >
                           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm uppercase">
                             {user.name?.charAt(0) ||
@@ -746,19 +746,19 @@ export default function Admin() {
                           </span>
                         </button>
                       </td>
-                      <td className="p-4 text-gray-300">
+                      <td className="p-4 app-muted">
                         {user.email}
                       </td>
-                      <td className="p-4 capitalize text-gray-300">
+                      <td className="p-4 capitalize app-muted">
                         {user.role}
                       </td>
-                      <td className="p-4 text-gray-300">
+                      <td className="p-4 app-muted">
                         {user.accessibleVideos}
                       </td>
-                      <td className="p-4 text-gray-300">
+                      <td className="p-4 app-muted">
                         {formatDate(user.lastLoginAt)}
                       </td>
-                      <td className="p-4 text-gray-300">
+                      <td className="p-4 app-muted">
                         {formatDate(user.createdAt)}
                       </td>
                       <td className="p-4">
@@ -770,7 +770,7 @@ export default function Admin() {
                           onClick={() =>
                             handleDeleteUser(user)
                           }
-                          className="rounded bg-red-700 px-3 py-2 font-semibold disabled:cursor-not-allowed disabled:bg-gray-700 disabled:text-gray-400"
+                          className="rounded bg-red-700 px-3 py-2 font-semibold disabled:cursor-not-allowed disabled:bg-gray-700 disabled:app-muted"
                         >
                           Delete
                         </button>
@@ -782,21 +782,21 @@ export default function Admin() {
             </div>
 
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-sm text-gray-400">
+                <span className="text-sm app-muted">
                   Showing {filteredUsers.length === 0 ? 0 : ((userPage - 1) * USERS_PER_PAGE) + 1} to {Math.min(userPage * USERS_PER_PAGE, filteredUsers.length)} of {filteredUsers.length} users
                 </span>
                 <div className="flex gap-2">
                   <button
                     disabled={userPage === 1}
                     onClick={() => setUserPage((p) => p - 1)}
-                    className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                    className="rounded app-soft-surface px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
                   >
                     Prev
                   </button>
                   <button
                     disabled={userPage === totalUserPages}
                     onClick={() => setUserPage((p) => p + 1)}
-                    className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                    className="rounded app-soft-surface px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
                   >
                     Next
                   </button>
@@ -807,12 +807,12 @@ export default function Admin() {
 
           <form
             onSubmit={handleCreateUser}
-            className="mt-6 grid gap-4 rounded-xl bg-gray-900 p-4 md:grid-cols-[1fr_1fr_1fr_160px_auto]"
+            className="mt-6 grid gap-4 rounded-xl app-panel p-4 md:grid-cols-[1fr_1fr_1fr_160px_auto]"
           >
             <input
               type="text"
               placeholder="Name"
-              className="rounded bg-gray-800 p-3"
+              className="rounded app-soft-surface p-3"
               value={newUserName}
               onChange={(e) =>
                 setNewUserName(e.target.value)
@@ -822,7 +822,7 @@ export default function Admin() {
             <input
               type="email"
               placeholder="Email"
-              className="rounded bg-gray-800 p-3"
+              className="rounded app-soft-surface p-3"
               value={newUserEmail}
               onChange={(e) =>
                 setNewUserEmail(e.target.value)
@@ -832,7 +832,7 @@ export default function Admin() {
             <input
               type="password"
               placeholder="Password"
-              className="rounded bg-gray-800 p-3"
+              className="rounded app-soft-surface p-3"
               value={newUserPassword}
               onChange={(e) =>
                 setNewUserPassword(e.target.value)
@@ -844,7 +844,7 @@ export default function Admin() {
               onChange={(e) =>
                 setNewUserRole(e.target.value)
               }
-              className="rounded bg-gray-800 p-3"
+              className="rounded app-soft-surface p-3"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
@@ -870,14 +870,14 @@ export default function Admin() {
             <button
               type="button"
               onClick={fetchVideos}
-              className="w-full rounded bg-gray-800 px-4 py-2 font-semibold sm:w-auto"
+              className="w-full rounded app-soft-surface px-4 py-2 font-semibold sm:w-auto"
             >
               Refresh
             </button>
           </div>
 
           {isLoadingVideos && (
-            <p className="text-gray-400">
+            <p className="app-muted">
               Loading videos...
             </p>
           )}
@@ -891,7 +891,7 @@ export default function Admin() {
           {!isLoadingVideos &&
             !videosError &&
             videos.length === 0 && (
-              <p className="text-gray-400">
+              <p className="app-muted">
                 No videos added yet. Add a video below,
                 then it will appear here with Edit and
                 Delete buttons.
@@ -903,7 +903,7 @@ export default function Admin() {
               <input
                 type="text"
                 placeholder="Search videos by title, description, or category..."
-                className="w-full max-w-md rounded bg-gray-800 p-3 text-sm focus:border-red-500 focus:outline-none"
+                className="w-full max-w-md rounded app-soft-surface p-3 text-sm focus:border-red-500 focus:outline-none"
                 value={videoSearchTerm}
                 onChange={handleVideoSearch}
               />
@@ -914,7 +914,7 @@ export default function Admin() {
             {displayedVideos.map((video) => (
               <div
                 key={video._id}
-                className="grid gap-4 rounded-xl bg-gray-900 p-4 md:grid-cols-[140px_1fr_180px]"
+                className="grid gap-4 rounded-xl app-panel p-4 md:grid-cols-[140px_1fr_180px]"
               >
                 <img
                   src={
@@ -930,7 +930,7 @@ export default function Admin() {
                     {video.title}
                   </h3>
 
-                  <p className="mt-2 text-gray-400">
+                  <p className="mt-2 app-muted">
                     {video.description}
                   </p>
 
@@ -988,21 +988,21 @@ export default function Admin() {
 
           {videos.length > 0 && (
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-sm text-gray-400">
+              <span className="text-sm app-muted">
                 Showing {filteredVideos.length === 0 ? 0 : ((videoPage - 1) * VIDEOS_PER_PAGE) + 1} to {Math.min(videoPage * VIDEOS_PER_PAGE, filteredVideos.length)} of {filteredVideos.length} videos
               </span>
               <div className="flex gap-2">
                 <button
                   disabled={videoPage === 1}
                   onClick={() => setVideoPage((p) => p - 1)}
-                  className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                  className="rounded app-soft-surface px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
                 >
                   Prev
                 </button>
                 <button
                   disabled={videoPage === totalVideoPages}
                   onClick={() => setVideoPage((p) => p + 1)}
-                  className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                  className="rounded app-soft-surface px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
                 >
                   Next
                 </button>
@@ -1022,14 +1022,14 @@ export default function Admin() {
               <button
                 type="button"
                 onClick={fetchYoutubeVideos}
-                className="w-full rounded bg-gray-800 px-4 py-2 font-semibold sm:w-auto"
+                className="w-full rounded app-soft-surface px-4 py-2 font-semibold sm:w-auto"
               >
                 Refresh
               </button>
             </div>
 
             {isLoadingYoutubeVideos && (
-              <p className="text-gray-400">
+              <p className="app-muted">
                 Loading YouTube videos...
               </p>
             )}
@@ -1043,7 +1043,7 @@ export default function Admin() {
             {!isLoadingYoutubeVideos &&
               !youtubeVideosError &&
               youtubeVideos.length === 0 && (
-                <p className="text-gray-400">
+                <p className="app-muted">
                   No YouTube videos added yet.
                 </p>
               )}
@@ -1053,7 +1053,7 @@ export default function Admin() {
                 <input
                   type="text"
                   placeholder="Search YouTube videos by title, category, subheading, or email..."
-                  className="w-full max-w-md rounded bg-gray-800 p-3 text-sm focus:border-red-500 focus:outline-none"
+                  className="w-full max-w-md rounded app-soft-surface p-3 text-sm focus:border-red-500 focus:outline-none"
                   value={youtubeSearchTerm}
                   onChange={handleYoutubeSearch}
                 />
@@ -1064,7 +1064,7 @@ export default function Admin() {
               {displayedYoutubeVideos.map((video) => (
                 <div
                   key={video._id}
-                  className="grid gap-4 rounded-xl bg-gray-900 p-4 md:grid-cols-[140px_1fr_180px]"
+                  className="grid gap-4 rounded-xl app-panel p-4 md:grid-cols-[140px_1fr_180px]"
                 >
                   <img
                     src={
@@ -1125,21 +1125,21 @@ export default function Admin() {
 
             {youtubeVideos.length > 0 && (
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-sm text-gray-400">
+                <span className="text-sm app-muted">
                   Showing {filteredYoutubeVideos.length === 0 ? 0 : ((youtubePage - 1) * VIDEOS_PER_PAGE) + 1} to {Math.min(youtubePage * VIDEOS_PER_PAGE, filteredYoutubeVideos.length)} of {filteredYoutubeVideos.length} YouTube videos
                 </span>
                 <div className="flex gap-2">
                   <button
                     disabled={youtubePage === 1}
                     onClick={() => setYoutubePage((p) => p - 1)}
-                    className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                    className="rounded app-soft-surface px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
                   >
                     Prev
                   </button>
                   <button
                     disabled={youtubePage === totalYoutubePages}
                     onClick={() => setYoutubePage((p) => p + 1)}
-                    className="rounded bg-gray-800 px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                    className="rounded app-soft-surface px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
                   >
                     Next
                   </button>
@@ -1152,7 +1152,7 @@ export default function Admin() {
         {activeTab === "videoForm" && (
         <form
           onSubmit={handleSubmit}
-          className="mx-auto max-w-xl rounded-xl bg-gray-900 p-4 sm:p-6"
+          className="mx-auto max-w-xl rounded-xl app-panel p-4 sm:p-6"
         >
 
           <h1 className="mb-6 text-2xl font-bold sm:text-3xl">
@@ -1164,25 +1164,25 @@ export default function Admin() {
           <input
             type="text"
             placeholder="Video Title"
-            className="w-full p-3 bg-gray-800 rounded"
+            className="w-full p-3 app-soft-surface rounded"
             value={title}
             onChange={(e) =>
               setTitle(e.target.value)
             }
           />
-          <p className="mb-4 mt-1 text-sm text-gray-400">
+          <p className="mb-4 mt-1 text-sm app-muted">
             {countLetters(title)} / {fieldLimits.title} letters
           </p>
 
           <textarea
             placeholder="Description"
-            className="w-full p-3 bg-gray-800 rounded"
+            className="w-full p-3 app-soft-surface rounded"
             value={description}
             onChange={(e) =>
               setDescription(e.target.value)
             }
           />
-          <p className="mb-4 mt-1 text-sm text-gray-400">
+          <p className="mb-4 mt-1 text-sm app-muted">
             {countLetters(description)} /{" "}
             {fieldLimits.description} letters
           </p>
@@ -1205,7 +1205,7 @@ export default function Admin() {
               setCategoryInputMode("existing");
               setCategory(e.target.value);
             }}
-            className="mb-4 w-full rounded bg-gray-800 p-3"
+            className="mb-4 w-full rounded app-soft-surface p-3"
           >
             <option value="">
               Select heading/category
@@ -1224,7 +1224,7 @@ export default function Admin() {
             <input
               type="text"
               placeholder="Write new heading/category"
-              className="mb-4 w-full rounded bg-gray-800 p-3"
+              className="mb-4 w-full rounded app-soft-surface p-3"
               value={category}
               onChange={(e) =>
                 setCategory(e.target.value)
@@ -1235,7 +1235,7 @@ export default function Admin() {
           <input
             type="text"
             placeholder="Subheading"
-            className="w-full p-3 mb-4 bg-gray-800 rounded"
+            className="w-full p-3 mb-4 app-soft-surface rounded"
             value={subheading}
             onChange={(e) =>
               setSubheading(e.target.value)
@@ -1245,13 +1245,13 @@ export default function Admin() {
           <input
             type="text"
             placeholder="Google Drive File ID"
-            className="w-full p-3 bg-gray-800 rounded"
+            className="w-full p-3 app-soft-surface rounded"
             value={driveFileId}
             onChange={(e) =>
               setDriveFileId(e.target.value)
             }
           />
-          <p className="mb-4 mt-1 text-sm text-gray-400">
+          <p className="mb-4 mt-1 text-sm app-muted">
             {countLetters(driveFileId)} /{" "}
             {fieldLimits.driveFileId} letters
           </p>
@@ -1259,7 +1259,7 @@ export default function Admin() {
           <input
             type="text"
             placeholder="Thumbnail URL"
-            className="w-full p-3 mb-4 bg-gray-800 rounded"
+            className="w-full p-3 mb-4 app-soft-surface rounded"
             value={thumbnail}
             onChange={(e) =>
               setThumbnail(e.target.value)
@@ -1268,7 +1268,7 @@ export default function Admin() {
 
           <textarea
             placeholder="Visible to email IDs. Leave blank for all users."
-            className="w-full p-3 mb-4 bg-gray-800 rounded"
+            className="w-full p-3 mb-4 app-soft-surface rounded"
             value={allowedEmails}
             onChange={(e) =>
               setAllowedEmails(e.target.value)
@@ -1277,7 +1277,7 @@ export default function Admin() {
 
           <textarea
             placeholder="Quality options, one per line. Example: 720p: googleDriveFileId"
-            className="w-full p-3 mb-4 bg-gray-800 rounded"
+            className="w-full p-3 mb-4 app-soft-surface rounded"
             value={qualities}
             onChange={(e) =>
               setQualities(e.target.value)
@@ -1308,7 +1308,7 @@ export default function Admin() {
         {activeTab === "youtubeForm" && (
           <form
             onSubmit={handleYoutubeSubmit}
-            className="mx-auto max-w-xl rounded-xl bg-gray-900 p-4 sm:p-6"
+            className="mx-auto max-w-xl rounded-xl app-panel p-4 sm:p-6"
           >
             <h1 className="mb-6 text-2xl font-bold sm:text-3xl">
               {editingYoutubeVideoId
@@ -1319,13 +1319,13 @@ export default function Admin() {
             <input
               type="text"
               placeholder="Video Title"
-              className="w-full rounded bg-gray-800 p-3"
+              className="w-full rounded app-soft-surface p-3"
               value={youtubeTitle}
               onChange={(e) =>
                 setYoutubeTitle(e.target.value)
               }
             />
-            <p className="mb-4 mt-1 text-sm text-gray-400">
+            <p className="mb-4 mt-1 text-sm app-muted">
               {countLetters(youtubeTitle)} /{" "}
               {fieldLimits.title} letters
             </p>
@@ -1337,7 +1337,7 @@ export default function Admin() {
                   ? "New YouTube Video ID (optional)"
                   : "YouTube Video ID"
               }
-              className="mb-4 w-full rounded bg-gray-800 p-3"
+              className="mb-4 w-full rounded app-soft-surface p-3"
               value={youtubeVideoId}
               onChange={(e) =>
                 setYoutubeVideoId(e.target.value)
@@ -1367,7 +1367,7 @@ export default function Admin() {
                 );
                 setYoutubeCategory(e.target.value);
               }}
-              className="mb-4 w-full rounded bg-gray-800 p-3"
+              className="mb-4 w-full rounded app-soft-surface p-3"
             >
               <option value="">
                 Select heading/category
@@ -1386,7 +1386,7 @@ export default function Admin() {
               <input
                 type="text"
                 placeholder="Write new heading/category"
-                className="mb-4 w-full rounded bg-gray-800 p-3"
+                className="mb-4 w-full rounded app-soft-surface p-3"
                 value={youtubeCategory}
                 onChange={(e) =>
                   setYoutubeCategory(e.target.value)
@@ -1397,7 +1397,7 @@ export default function Admin() {
             <input
               type="text"
               placeholder="Subheading"
-              className="mb-4 w-full rounded bg-gray-800 p-3"
+              className="mb-4 w-full rounded app-soft-surface p-3"
               value={youtubeSubheading}
               onChange={(e) =>
                 setYoutubeSubheading(e.target.value)
@@ -1407,7 +1407,7 @@ export default function Admin() {
             <input
               type="text"
               placeholder="Thumbnail URL"
-              className="mb-4 w-full rounded bg-gray-800 p-3"
+              className="mb-4 w-full rounded app-soft-surface p-3"
               value={youtubeThumbnail}
               onChange={(e) =>
                 setYoutubeThumbnail(e.target.value)
@@ -1416,7 +1416,7 @@ export default function Admin() {
 
             <textarea
               placeholder="Visible to email IDs. Leave blank for all users."
-              className="mb-4 w-full rounded bg-gray-800 p-3"
+              className="mb-4 w-full rounded app-soft-surface p-3"
               value={youtubeAllowedEmails}
               onChange={(e) =>
                 setYoutubeAllowedEmails(

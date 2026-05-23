@@ -40,7 +40,9 @@ export default function Login() {
 
       login(data.token, data.user);
 
-      navigate("/");
+      navigate("/", {
+        replace: true,
+      });
 
     } catch (error) {
 
@@ -57,7 +59,7 @@ export default function Login() {
 
   return (
 
-    <div className="min-h-screen bg-black text-white">
+    <div className="app-page">
 
       <div className="grid min-h-screen lg:grid-cols-[1fr_460px]">
 
@@ -75,13 +77,13 @@ export default function Login() {
             <h2 className="text-6xl font-bold leading-tight">
               Continue watching your private video library.
             </h2>
-            <p className="mt-6 text-lg text-gray-300">
+            <p className="mt-6 text-lg app-muted">
               Sign in to view the videos assigned to your
               account.
             </p>
           </div>
 
-          <p className="text-sm text-gray-400">
+          <p className="text-sm app-muted">
             Secure role-based video access
           </p>
         </div>
@@ -89,7 +91,7 @@ export default function Login() {
         <div className="flex items-center justify-center p-6">
           <form
             onSubmit={handleLogin}
-            className="w-full max-w-md rounded-2xl border border-gray-800 bg-gray-950 p-8 shadow-2xl"
+            className="w-full max-w-md rounded-2xl border app-border app-panel p-8 shadow-2xl"
           >
 
             <div className="mb-8">
@@ -99,7 +101,7 @@ export default function Login() {
               <h1 className="mt-2 text-4xl font-bold">
                 Login
               </h1>
-              <p className="mt-3 text-gray-400">
+              <p className="mt-3 app-muted">
                 Enter your details to continue.
               </p>
             </div>
@@ -110,26 +112,26 @@ export default function Login() {
               </p>
             )}
 
-            <label className="mb-2 block text-sm text-gray-300">
+            <label className="mb-2 block text-sm app-muted">
               Email
             </label>
             <input
               type="email"
               placeholder="you@example.com"
-              className="mb-5 w-full rounded-lg border border-gray-800 bg-gray-900 p-3 outline-none transition focus:border-red-500"
+              className="mb-5 w-full rounded-lg border app-border app-surface p-3 outline-none transition focus:border-red-500"
               value={email}
               onChange={(e) =>
                 setEmail(e.target.value)
               }
             />
 
-            <label className="mb-2 block text-sm text-gray-300">
+            <label className="mb-2 block text-sm app-muted">
               Password
             </label>
             <input
               type="password"
               placeholder="Enter password"
-              className="mb-6 w-full rounded-lg border border-gray-800 bg-gray-900 p-3 outline-none transition focus:border-red-500"
+              className="mb-6 w-full rounded-lg border app-border app-surface p-3 outline-none transition focus:border-red-500"
               value={password}
               onChange={(e) =>
                 setPassword(e.target.value)
@@ -146,7 +148,7 @@ export default function Login() {
                 : "Login"}
             </button>
 
-            <p className="mt-6 text-center text-gray-400">
+            <p className="mt-6 text-center app-muted">
 
               Don't have an account?{" "}
 

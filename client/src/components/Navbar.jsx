@@ -1,14 +1,22 @@
 import {
   Link,
   useLocation,
+  useNavigate,
+  useNavigationType,
 } from "react-router-dom";
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+
+const APP_HISTORY_KEY = "appNavigationHistory";
+const APP_HISTORY_INDEX_KEY =
+  "appNavigationHistoryIndex";
 
 export default function Navbar({
   adminViewUsers = [],
@@ -17,8 +25,16 @@ export default function Navbar({
   adminViewCount,
 }) {
   const { token, user, isAdmin, logout } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
+  const navigationType = useNavigationType();
+  const previousPathRef = useRef("");
   const [isMenuOpen, setIsMenuOpen] =
+    useState(false);
+  const [canGoBack, setCanGoBack] =
+    useState(false);
+  const [canGoForward, setCanGoForward] =
     useState(false);
 
   const headerTitle = useMemo(() => {
@@ -51,9 +67,101 @@ export default function Navbar({
     document.title = headerTitle;
   }, [headerTitle]);
 
+  useEffect(() => {
+    const currentPath = `${location.pathname}${location.search}${location.hash}`;
+
+    if (previousPathRef.current === currentPath) {
+      return;
+    }
+
+    previousPathRef.current = currentPath;
+
+    let stack;
+    let index;
+
+    try {
+      stack = JSON.parse(
+        sessionStorage.getItem(APP_HISTORY_KEY) ||
+          "[]"
+      );
+      index = Number(
+        sessionStorage.getItem(
+          APP_HISTORY_INDEX_KEY
+        )
+      );
+    } catch {
+      stack = [];
+      index = -1;
+    }
+
+    if (!Number.isFinite(index)) {
+      index = -1;
+    }
+
+    if (
+      navigationType === "REPLACE" ||
+      stack.length === 0 ||
+      index < 0
+    ) {
+      stack = [currentPath];
+      index = 0;
+    } else if (stack[index] === currentPath) {
+      // Already positioned on this entry.
+    } else if (navigationType === "POP") {
+      if (stack[index - 1] === currentPath) {
+        index -= 1;
+      } else if (stack[index + 1] === currentPath) {
+        index += 1;
+      } else {
+        stack = [
+          ...stack.slice(0, index + 1),
+          currentPath,
+        ];
+        index = stack.length - 1;
+      }
+    } else {
+      stack = [
+        ...stack.slice(0, index + 1),
+        currentPath,
+      ];
+      index = stack.length - 1;
+    }
+
+    sessionStorage.setItem(
+      APP_HISTORY_KEY,
+      JSON.stringify(stack)
+    );
+    sessionStorage.setItem(
+      APP_HISTORY_INDEX_KEY,
+      String(index)
+    );
+
+    setCanGoBack(index > 0);
+    setCanGoForward(index < stack.length - 1);
+  }, [
+    location.hash,
+    location.pathname,
+    location.search,
+    navigationType,
+  ]);
+
   const handleLogout = () => {
     setIsMenuOpen(false);
+    sessionStorage.removeItem(APP_HISTORY_KEY);
+    sessionStorage.removeItem(APP_HISTORY_INDEX_KEY);
     logout();
+  };
+
+  const handleBack = () => {
+    if (canGoBack) {
+      navigate(-1);
+    }
+  };
+
+  const handleForward = () => {
+    if (canGoForward) {
+      navigate(1);
+    }
   };
 
   const showAdminViewSelector =
@@ -62,7 +170,7 @@ export default function Navbar({
     onAdminViewUserChange;
 
   return (
-    <nav className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-black/60 p-3 text-white backdrop-blur-md transition-all duration-300 sm:p-4">
+    <nav className="app-panel sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b p-3 backdrop-blur-md transition-all duration-300 sm:p-4">
       <Link to="/" className="min-w-0 flex-1 basis-40">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-400 sm:text-xs sm:tracking-[0.2em]">
           Learning App
@@ -77,7 +185,7 @@ export default function Navbar({
           <div className="flex items-center gap-2 text-sm sm:gap-4 sm:text-base">
             <Link
               to="/login"
-              className="rounded bg-gray-900 px-3 py-2 font-semibold"
+              className="app-surface app-hover rounded px-3 py-2 font-semibold"
             >
               Login
             </Link>
@@ -91,9 +199,57 @@ export default function Navbar({
           </div>
         ) : (
           <div className="relative flex flex-wrap items-center justify-end gap-2 sm:gap-4">
+            <div className="app-panel flex items-center gap-1 rounded-lg p-1">
+              <button
+                type="button"
+                aria-label="Go back"
+                title="Back"
+                disabled={!canGoBack}
+                onClick={handleBack}
+                className="app-surface app-hover flex h-9 w-9 items-center justify-center rounded disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 12H5" />
+                  <path d="m12 19-7-7 7-7" />
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                aria-label="Go forward"
+                title="Forward"
+                disabled={!canGoForward}
+                onClick={handleForward}
+                className="app-surface app-hover flex h-9 w-9 items-center justify-center rounded disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
             {showAdminViewSelector && (
-              <div className="flex max-w-full items-center gap-2 rounded-lg border border-gray-800 bg-gray-950/80 px-2 py-2">
-                <span className="hidden text-xs font-semibold text-gray-400 md:inline">
+              <div className="app-panel flex max-w-full items-center gap-2 rounded-lg border px-2 py-2">
+                <span className="app-muted hidden text-xs font-semibold md:inline">
                   View as
                 </span>
 
@@ -104,7 +260,7 @@ export default function Navbar({
                       e.target.value
                     )
                   }
-                  className="max-w-36 rounded bg-gray-800 px-2 py-1 text-xs text-white outline-none focus:border-red-500 sm:max-w-52"
+                  className="app-input max-w-36 rounded border px-2 py-1 text-xs outline-none focus:border-red-500 sm:max-w-52"
                 >
                   <option value="">
                     Admin view
@@ -131,7 +287,7 @@ export default function Navbar({
             {isAdmin && (
               <Link
                 to="/admin"
-                className="rounded bg-gray-900 px-3 py-2 text-sm font-semibold hover:bg-gray-800 sm:text-base"
+                className="app-surface app-hover rounded px-3 py-2 text-sm font-semibold sm:text-base"
               >
                 Admin
               </Link>
@@ -139,12 +295,60 @@ export default function Navbar({
 
             <button
               type="button"
+              aria-label="Toggle theme"
+              title={
+                isDarkMode
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"
+              }
+              onClick={toggleTheme}
+              className="app-surface app-hover flex h-9 w-9 items-center justify-center rounded"
+            >
+              {isDarkMode ? (
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2" />
+                  <path d="M12 20v2" />
+                  <path d="m4.93 4.93 1.41 1.41" />
+                  <path d="m17.66 17.66 1.41 1.41" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path d="m6.34 17.66-1.41 1.41" />
+                  <path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+              ) : (
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                </svg>
+              )}
+            </button>
+
+            <button
+              type="button"
               onClick={() =>
                 setIsMenuOpen((current) => !current)
               }
-              className="flex flex-col items-center gap-1 rounded px-1 py-1 hover:bg-gray-900 sm:px-2"
+              className="app-hover flex flex-col items-center gap-1 rounded px-1 py-1 sm:px-2"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 sm:h-10 sm:w-10">
+              <span className="app-soft-surface flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10">
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
@@ -155,16 +359,16 @@ export default function Navbar({
                 </svg>
               </span>
 
-              <span className="max-w-[72px] truncate text-[11px] text-gray-300 sm:max-w-[120px] sm:text-xs">
+              <span className="app-muted max-w-[72px] truncate text-[11px] sm:max-w-[120px] sm:text-xs">
                 {user?.name}
               </span>
             </button>
 
             {isMenuOpen && (
-              <div className="absolute right-0 top-14 z-20 w-[calc(100vw-1.5rem)] max-w-72 rounded-lg border border-gray-800 bg-gray-950 p-4 shadow-xl sm:top-16">
-                <div className="mb-4 border-b border-gray-800 pb-4">
+              <div className="app-panel light-shadow absolute right-0 top-14 z-20 w-[calc(100vw-1.5rem)] max-w-72 rounded-lg border p-4 shadow-xl sm:top-16">
+                <div className="app-border mb-4 border-b pb-4">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-800">
+                    <span className="app-soft-surface flex h-11 w-11 items-center justify-center rounded-full">
                       <svg
                         aria-hidden="true"
                         viewBox="0 0 24 24"
@@ -180,7 +384,7 @@ export default function Navbar({
                         {user?.name}
                       </p>
 
-                      <p className="truncate text-sm text-gray-400">
+                      <p className="app-muted truncate text-sm">
                         {user?.email}
                       </p>
                     </div>
@@ -191,7 +395,7 @@ export default function Navbar({
                   <Link
                     to="/profile"
                     onClick={() => setIsMenuOpen(false)}
-                    className="rounded px-3 py-2 hover:bg-gray-900"
+                    className="app-hover rounded px-3 py-2"
                   >
                     User Profile
                   </Link>
@@ -199,7 +403,7 @@ export default function Navbar({
                   <Link
                     to="/change-password"
                     onClick={() => setIsMenuOpen(false)}
-                    className="rounded px-3 py-2 hover:bg-gray-900"
+                    className="app-hover rounded px-3 py-2"
                   >
                     Change Password
                   </Link>
@@ -207,7 +411,7 @@ export default function Navbar({
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="rounded px-3 py-2 text-left hover:bg-gray-900"
+                    className="app-hover rounded px-3 py-2 text-left"
                   >
                     Logout
                   </button>

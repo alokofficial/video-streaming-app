@@ -55,13 +55,13 @@ export default function ChangePassword() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="app-page">
       <Navbar />
 
       <div className="mx-auto max-w-xl p-6">
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl bg-gray-900 p-6"
+          className="rounded-xl app-panel p-6"
         >
           <h1 className="mb-6 text-3xl font-bold">
             Change Password
@@ -82,7 +82,7 @@ export default function ChangePassword() {
           <input
             type="password"
             placeholder="Current Password"
-            className="mb-4 w-full rounded bg-gray-800 p-3"
+            className="mb-4 w-full rounded app-soft-surface p-3"
             value={currentPassword}
             onChange={(e) =>
               setCurrentPassword(e.target.value)
@@ -92,7 +92,7 @@ export default function ChangePassword() {
           <input
             type="password"
             placeholder="New Password"
-            className="mb-4 w-full rounded bg-gray-800 p-3"
+            className="mb-4 w-full rounded app-soft-surface p-3"
             value={newPassword}
             onChange={(e) =>
               setNewPassword(e.target.value)
@@ -102,7 +102,7 @@ export default function ChangePassword() {
           <input
             type="password"
             placeholder="Confirm New Password"
-            className="mb-4 w-full rounded bg-gray-800 p-3"
+            className="mb-4 w-full rounded app-soft-surface p-3"
             value={confirmPassword}
             onChange={(e) =>
               setConfirmPassword(e.target.value)

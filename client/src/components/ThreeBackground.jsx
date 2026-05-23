@@ -172,5 +172,5 @@ export default function ThreeBackground() {
     };
   }, []);
 
-  return <div ref={mountRef} className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none" />;
+  return <div ref={mountRef} className="three-background fixed top-0 left-0 w-full h-full -z-10 pointer-events-none" />;
 }
