@@ -273,6 +273,56 @@ export const deleteUser = async (req, res) => {
 };
 
 
+// GET CURRENT USER HEADING ORDER
+export const getHeadingOrder = async (req, res) => {
+  try {
+    res.json({
+      headingOrder: req.user.headingOrder || [],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+
+// UPDATE CURRENT USER HEADING ORDER
+export const updateHeadingOrder = async (req, res) => {
+  try {
+    const headingOrder = Array.isArray(
+      req.body.headingOrder
+    )
+      ? req.body.headingOrder
+          .map((heading) =>
+            String(heading).trim()
+          )
+          .filter(Boolean)
+      : [];
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        headingOrder: [
+          ...new Set(headingOrder),
+        ],
+      },
+      {
+        returnDocument: "after",
+      }
+    ).select("headingOrder");
+
+    res.json({
+      headingOrder: user.headingOrder || [],
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+
 // CHANGE PASSWORD
 export const changePassword = async (req, res) => {
   try {

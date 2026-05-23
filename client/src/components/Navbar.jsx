@@ -10,7 +10,12 @@ import {
 
 import { useAuth } from "../context/AuthContext";
 
-export default function Navbar() {
+export default function Navbar({
+  adminViewUsers = [],
+  selectedAdminViewUserId = "",
+  onAdminViewUserChange,
+  adminViewCount,
+}) {
   const { token, user, isAdmin, logout } = useAuth();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] =
@@ -51,9 +56,14 @@ export default function Navbar() {
     logout();
   };
 
+  const showAdminViewSelector =
+    isAdmin &&
+    adminViewUsers.length > 0 &&
+    onAdminViewUserChange;
+
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between gap-3 border-b border-white/10 bg-black/60 p-3 text-white backdrop-blur-md transition-all duration-300 sm:p-4">
-      <Link to="/" className="min-w-0 flex-1">
+    <nav className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-black/60 p-3 text-white backdrop-blur-md transition-all duration-300 sm:p-4">
+      <Link to="/" className="min-w-0 flex-1 basis-40">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-400 sm:text-xs sm:tracking-[0.2em]">
           Learning App
         </p>
@@ -80,7 +90,44 @@ export default function Navbar() {
             </Link>
           </div>
         ) : (
-          <div className="relative flex items-center gap-2 sm:gap-4">
+          <div className="relative flex flex-wrap items-center justify-end gap-2 sm:gap-4">
+            {showAdminViewSelector && (
+              <div className="flex max-w-full items-center gap-2 rounded-lg border border-gray-800 bg-gray-950/80 px-2 py-2">
+                <span className="hidden text-xs font-semibold text-gray-400 md:inline">
+                  View as
+                </span>
+
+                <select
+                  value={selectedAdminViewUserId}
+                  onChange={(e) =>
+                    onAdminViewUserChange(
+                      e.target.value
+                    )
+                  }
+                  className="max-w-36 rounded bg-gray-800 px-2 py-1 text-xs text-white outline-none focus:border-red-500 sm:max-w-52"
+                >
+                  <option value="">
+                    Admin view
+                  </option>
+                  {adminViewUsers.map((adminUser) => (
+                    <option
+                      key={adminUser.id}
+                      value={adminUser.id}
+                    >
+                      {adminUser.name} (
+                      {adminUser.email})
+                    </option>
+                  ))}
+                </select>
+
+                {Number.isFinite(adminViewCount) && (
+                  <span className="rounded bg-red-600/20 px-2 py-1 text-xs font-semibold text-red-100">
+                    {adminViewCount}
+                  </span>
+                )}
+              </div>
+            )}
+
             {isAdmin && (
               <Link
                 to="/admin"

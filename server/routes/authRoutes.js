@@ -7,6 +7,8 @@ import {
   getUsers,
   createUser,
   deleteUser,
+  getHeadingOrder,
+  updateHeadingOrder,
 } from "../controllers/authController.js";
 import {
   protect,
@@ -18,6 +20,16 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.put("/change-password", protect, changePassword);
+router.get(
+  "/preferences/heading-order",
+  protect,
+  getHeadingOrder
+);
+router.put(
+  "/preferences/heading-order",
+  protect,
+  updateHeadingOrder
+);
 router.get(
   "/users",
   protect,

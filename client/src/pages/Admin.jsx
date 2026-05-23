@@ -39,10 +39,21 @@ const fieldLimits = {
 
 const USERS_PER_PAGE = 10;
 const VIDEOS_PER_PAGE = 5;
+const HEADING_OTHER_VALUE = "__other__";
 const DEFAULT_DRIVE_THUMBNAIL =
   "https://imgs.search.brave.com/aJbpA-62AKAWzzdV3gLEKFsRmBL5DyMouzgU0y1RQO0/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMjIz/MzAxMjU5Ny9waG90/by9iZXJsaW4tZ2Vy/bWFueS1pbi10aGlz/LXBob3RvLWlsbHVz/dHJhdGlvbi10aGUt/Z29vZ2xlLWRyaXZl/LWFwcC1pcy1kaXNw/bGF5ZWQtb24tdGhl/LXNjcmVlbi1vZi5q/cGc_cz02MTJ4NjEy/Jnc9MCZrPTIwJmM9/aERiNVVtOHlRM0Vs/VkJrMFU5a04zZ3dr/QS1GNnNnS3RON3Uw/ZVRpdGV5WT0";
 const DEFAULT_YOUTUBE_THUMBNAIL =
   "https://imgs.search.brave.com/vnc7fAs0ZfAoGWxprz3aDlu0OOjyvDvGBYmM32_AynA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pbWFn/ZXMudW5zcGxhc2gu/Y29tL3Bob3RvLTE2/MTExNjI2MTY0NzUt/NDZiNjM1Y2I2ODY4/P2ZtPWpwZyZxPTYw/Jnc9MzAwMCZhdXRv/PWZvcm1hdCZmaXQ9/Y3JvcCZpeGxpYj1y/Yi00LjEuMCZpeGlk/PU0zd3hNakEzZkRC/OE1IeHpaV0Z5WTJo/OE1ueDhlVzkxZEhW/aVpTVXlNR3h2WjI5/OFpXNThNSHg4TUh4/OGZEQT0";
+
+const getUniqueHeadings = (items) => {
+  return [
+    ...new Set(
+      items
+        .map((item) => item.category?.trim())
+        .filter(Boolean)
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+};
 
 export default function Admin() {
   const { user: currentUser } = useAuth();
@@ -111,6 +122,10 @@ export default function Admin() {
 
   const [category, setCategory] =
     useState("");
+  const [
+    categoryInputMode,
+    setCategoryInputMode,
+  ] = useState("existing");
 
   const [subheading, setSubheading] =
     useState("");
@@ -135,6 +150,10 @@ export default function Admin() {
 
   const [youtubeCategory, setYoutubeCategory] =
     useState("");
+  const [
+    youtubeCategoryInputMode,
+    setYoutubeCategoryInputMode,
+  ] = useState("existing");
 
   const [
     youtubeSubheading,
@@ -160,6 +179,10 @@ export default function Admin() {
 
   const [youtubeSearchTerm, setYoutubeSearchTerm] = useState("");
   const [youtubePage, setYoutubePage] = useState(1);
+  const headingOptions = getUniqueHeadings([
+    ...videos,
+    ...youtubeVideos,
+  ]);
 
   const fetchVideos = useCallback(async () => {
     try {
@@ -219,6 +242,7 @@ export default function Admin() {
     setTitle(emptyForm.title);
     setDescription(emptyForm.description);
     setCategory(emptyForm.category);
+    setCategoryInputMode("existing");
     setSubheading(emptyForm.subheading);
     setDriveFileId(emptyForm.driveFileId);
     setThumbnail(emptyForm.thumbnail);
@@ -231,6 +255,7 @@ export default function Admin() {
     setYoutubeTitle("");
     setYoutubeVideoId("");
     setYoutubeCategory("");
+    setYoutubeCategoryInputMode("existing");
     setYoutubeSubheading("");
     setYoutubeThumbnail(DEFAULT_YOUTUBE_THUMBNAIL);
     setYoutubeAllowedEmails("");
@@ -433,6 +458,12 @@ export default function Admin() {
     setTitle(video.title);
     setDescription(video.description || "");
     setCategory(video.category || "");
+    setCategoryInputMode(
+      video.category &&
+        !headingOptions.includes(video.category)
+        ? "other"
+        : "existing"
+    );
     setSubheading(video.subheading || "");
     setDriveFileId(video.driveFileId);
     setThumbnail(
@@ -457,6 +488,12 @@ export default function Admin() {
     setYoutubeTitle(video.title || "");
     setYoutubeVideoId("");
     setYoutubeCategory(video.category || "");
+    setYoutubeCategoryInputMode(
+      video.category &&
+        !headingOptions.includes(video.category)
+        ? "other"
+        : "existing"
+    );
     setYoutubeSubheading(video.subheading || "");
     setYoutubeThumbnail(
       video.thumbnail || DEFAULT_YOUTUBE_THUMBNAIL
@@ -1150,15 +1187,50 @@ export default function Admin() {
             {fieldLimits.description} letters
           </p>
 
-          <input
-            type="text"
-            placeholder="Category Type"
-            className="w-full p-3 mb-4 bg-gray-800 rounded"
-            value={category}
-            onChange={(e) =>
-              setCategory(e.target.value)
+          <select
+            value={
+              categoryInputMode === "other"
+                ? HEADING_OTHER_VALUE
+                : category
             }
-          />
+            onChange={(e) => {
+              if (
+                e.target.value === HEADING_OTHER_VALUE
+              ) {
+                setCategoryInputMode("other");
+                setCategory("");
+                return;
+              }
+
+              setCategoryInputMode("existing");
+              setCategory(e.target.value);
+            }}
+            className="mb-4 w-full rounded bg-gray-800 p-3"
+          >
+            <option value="">
+              Select heading/category
+            </option>
+            {headingOptions.map((heading) => (
+              <option key={heading} value={heading}>
+                {heading}
+              </option>
+            ))}
+            <option value={HEADING_OTHER_VALUE}>
+              Other
+            </option>
+          </select>
+
+          {categoryInputMode === "other" && (
+            <input
+              type="text"
+              placeholder="Write new heading/category"
+              className="mb-4 w-full rounded bg-gray-800 p-3"
+              value={category}
+              onChange={(e) =>
+                setCategory(e.target.value)
+              }
+            />
+          )}
 
           <input
             type="text"
@@ -1272,15 +1344,55 @@ export default function Admin() {
               }
             />
 
-            <input
-              type="text"
-              placeholder="Category Type"
-              className="mb-4 w-full rounded bg-gray-800 p-3"
-              value={youtubeCategory}
-              onChange={(e) =>
-                setYoutubeCategory(e.target.value)
+            <select
+              value={
+                youtubeCategoryInputMode === "other"
+                  ? HEADING_OTHER_VALUE
+                  : youtubeCategory
               }
-            />
+              onChange={(e) => {
+                if (
+                  e.target.value ===
+                  HEADING_OTHER_VALUE
+                ) {
+                  setYoutubeCategoryInputMode(
+                    "other"
+                  );
+                  setYoutubeCategory("");
+                  return;
+                }
+
+                setYoutubeCategoryInputMode(
+                  "existing"
+                );
+                setYoutubeCategory(e.target.value);
+              }}
+              className="mb-4 w-full rounded bg-gray-800 p-3"
+            >
+              <option value="">
+                Select heading/category
+              </option>
+              {headingOptions.map((heading) => (
+                <option key={heading} value={heading}>
+                  {heading}
+                </option>
+              ))}
+              <option value={HEADING_OTHER_VALUE}>
+                Other
+              </option>
+            </select>
+
+            {youtubeCategoryInputMode === "other" && (
+              <input
+                type="text"
+                placeholder="Write new heading/category"
+                className="mb-4 w-full rounded bg-gray-800 p-3"
+                value={youtubeCategory}
+                onChange={(e) =>
+                  setYoutubeCategory(e.target.value)
+                }
+              />
+            )}
 
             <input
               type="text"
