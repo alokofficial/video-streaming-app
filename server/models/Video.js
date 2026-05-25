@@ -71,6 +71,9 @@ const videoSchema = new mongoose.Schema(
   }
 );
 
+videoSchema.index({ driveFileId: 1 });
+videoSchema.index({ createdAt: -1 });
+
 const Video = mongoose.model(
   "Video",
   videoSchema

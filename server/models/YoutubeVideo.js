@@ -48,6 +48,8 @@ const youtubeVideoSchema = new mongoose.Schema(
   }
 );
 
+youtubeVideoSchema.index({ createdAt: -1 });
+
 const YoutubeVideo = mongoose.model(
   "YoutubeVideo",
   youtubeVideoSchema

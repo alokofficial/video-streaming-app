@@ -1,12 +1,14 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import {
   useCallback,
   useEffect,
   useState,
+  lazy,
+  Suspense,
 } from "react";
 
 import Navbar from "../components/Navbar";
-import ThreeBackground from "../components/ThreeBackground";
+
+const ThreeBackground = lazy(() => import("../components/ThreeBackground"));
 
 import API from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -642,7 +644,9 @@ export default function Admin() {
   return (
 
     <div className="app-transparent-page relative">
-      <ThreeBackground />
+      <Suspense fallback={null}>
+        <ThreeBackground />
+      </Suspense>
       <Navbar />
 
       <div className="p-4 sm:p-6">

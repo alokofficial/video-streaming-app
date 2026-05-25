@@ -3,12 +3,15 @@ import {
   useCallback,
   useEffect,
   useState,
+  lazy,
+  Suspense,
 } from "react";
 
 import { Link } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
-import ThreeBackground from "../components/ThreeBackground";
+
+const ThreeBackground = lazy(() => import("../components/ThreeBackground"));
 
 import { useAuth } from "../context/AuthContext";
 import API from "../services/api";
@@ -322,7 +325,9 @@ export default function Home() {
 
   return (
     <div className="app-transparent-page relative">
-      <ThreeBackground />
+      <Suspense fallback={null}>
+        <ThreeBackground />
+      </Suspense>
       <Navbar
         adminViewUsers={users}
         selectedAdminViewUserId={selectedUserId}
