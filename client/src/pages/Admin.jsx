@@ -30,6 +30,29 @@ const formatDate = (date) => {
   return new Date(date).toLocaleString();
 };
 
+const getActionBadgeClass = (action) => {
+  switch (action) {
+    case "LOGIN":
+      return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 dark:bg-emerald-500/5";
+    case "REGISTER":
+      return "bg-teal-500/10 text-teal-500 border-teal-500/20 dark:bg-teal-500/5";
+    case "WATCH_DRIVE_VIDEO":
+      return "bg-sky-500/10 text-sky-500 border-sky-500/20 dark:bg-sky-500/5";
+    case "WATCH_YOUTUBE_VIDEO":
+      return "bg-indigo-500/10 text-indigo-500 border-indigo-500/20 dark:bg-indigo-500/5";
+    case "CHANGE_GATE_SETTINGS":
+      return "bg-amber-500/10 text-amber-500 border-amber-500/20 dark:bg-amber-500/5";
+    case "CHANGE_PASSWORD":
+      return "bg-rose-500/10 text-rose-500 border-rose-500/20 dark:bg-rose-500/5";
+    case "UPDATE_PROFILE":
+      return "bg-purple-500/10 text-purple-500 border-purple-500/20 dark:bg-purple-500/5";
+    case "CLEAR_LOGS":
+      return "bg-rose-500/10 text-rose-500 border-rose-500/20 dark:bg-rose-500/5";
+    default:
+      return "bg-slate-500/10 text-slate-500 border-slate-500/20 dark:bg-slate-500/5";
+  }
+};
+
 const countLetters = (value = "") => {
   return value.trim().length;
 };
@@ -195,6 +218,15 @@ export default function Admin() {
   const [gateError, setGateError] = useState("");
   const [gateLoading, setGateLoading] = useState(true);
 
+  // ── Activity Logs state ──
+  const [logs, setLogs] = useState([]);
+  const [logsPage, setLogsPage] = useState(1);
+  const [logsPages, setLogsPages] = useState(1);
+  const [logsTotal, setLogsTotal] = useState(0);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [logsError, setLogsError] = useState("");
+  const [logsMsg, setLogsMsg] = useState("");
+
   const headingOptions = getUniqueHeadings([
     ...videos,
     ...youtubeVideos,
@@ -261,6 +293,59 @@ export default function Admin() {
       setGateLoading(false);
     }
   }, []);
+
+  const fetchLogs = useCallback(async (page = 1) => {
+    try {
+      setIsLoadingLogs(true);
+      setLogsError("");
+      const { data } = await API.get(`/auth/logs?page=${page}&limit=25`);
+      setLogs(data.logs);
+      setLogsPage(data.page);
+      setLogsPages(data.pages);
+      setLogsTotal(data.total);
+    } catch (error) {
+      console.error(error);
+      setLogsError(getErrorMessage(error));
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  }, []);
+
+  const handleClearLogs = async (clearAll, olderThanDays) => {
+    let confirmMsg = "";
+    if (clearAll) {
+      confirmMsg = "Are you sure you want to permanently delete ALL activity logs? This action cannot be undone.";
+    } else {
+      confirmMsg = `Are you sure you want to permanently delete all activity logs older than ${olderThanDays} days? This action cannot be undone.`;
+    }
+
+    if (!window.confirm(confirmMsg)) {
+      return;
+    }
+
+    try {
+      setIsLoadingLogs(true);
+      setLogsError("");
+      setLogsMsg("");
+      const { data } = await API.delete("/auth/logs", {
+        data: { clearAll, olderThanDays }
+      });
+      setLogsMsg(data.message);
+      setLogsPage(1);
+      await fetchLogs(1);
+    } catch (error) {
+      console.error(error);
+      setLogsError(getErrorMessage(error));
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "logs") {
+      fetchLogs(logsPage);
+    }
+  }, [activeTab, logsPage, fetchLogs]);
 
   useEffect(() => {
     fetchVideos();
@@ -701,6 +786,14 @@ export default function Admin() {
             }`}
           >
             ⚙️ Settings
+          </button>
+          <button
+            onClick={() => { setActiveTab("logs"); setLogsPage(1); }}
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
+              activeTab === "logs" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
+            }`}
+          >
+            📋 Activity Logs
           </button>
         </div>
 
@@ -1779,6 +1872,147 @@ export default function Admin() {
                   </div>
                 )}
 
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "logs" && (
+          <div className="animate-fade-in">
+            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-2xl font-bold sm:text-3xl">Activity Logs</h2>
+                <p className="text-xs app-muted mt-1">
+                  Audit trail of all security, login, and content streaming events on the platform.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="rounded-xl border border-slate-200/50 dark:border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  Total Events: <span className="text-red-500 font-bold">{logsTotal}</span>
+                </div>
+                <button
+                  onClick={() => handleClearLogs(false, 10)}
+                  disabled={isLoadingLogs || logs.length === 0}
+                  className="flex items-center gap-1.5 rounded-xl border border-amber-500/20 dark:border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 px-4 py-2.5 text-xs font-bold text-amber-700 dark:text-amber-400 disabled:opacity-40 disabled:hover:bg-amber-500/5 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 shadow-sm"
+                  title="Clear logs older than 10 days"
+                >
+                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Clear &gt; 10 Days
+                </button>
+                <button
+                  onClick={() => handleClearLogs(true, 0)}
+                  disabled={isLoadingLogs || logs.length === 0}
+                  className="flex items-center gap-1.5 rounded-xl border border-rose-500/20 dark:border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/15 px-4 py-2.5 text-xs font-bold text-rose-700 dark:text-rose-400 disabled:opacity-40 disabled:hover:bg-rose-500/5 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 shadow-sm"
+                  title="Clear all activity logs"
+                >
+                  <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Clear All Logs
+                </button>
+              </div>
+            </div>
+
+            {logsMsg && (
+              <div className="mb-4 flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-sm text-emerald-700 dark:text-emerald-400 font-medium animate-fade-in">
+                <svg className="h-5 w-5 shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                {logsMsg}
+              </div>
+            )}
+
+            {logsError && (
+              <div className="mb-4 rounded-xl bg-rose-500/10 border border-rose-500/20 p-4 text-sm text-rose-500 font-medium">
+                {logsError}
+              </div>
+            )}
+
+            <div className="overflow-x-auto rounded-2xl border app-border bg-white/80 dark:bg-black/20 shadow-xl scrollbar-hide">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b app-border bg-slate-100 dark:bg-white/5 text-xs font-bold uppercase tracking-wider app-muted">
+                    <th className="p-4 text-slate-700 dark:text-slate-400">Time</th>
+                    <th className="p-4 text-slate-700 dark:text-slate-400">User</th>
+                    <th className="p-4 text-slate-700 dark:text-slate-400">Action</th>
+                    <th className="p-4 text-slate-700 dark:text-slate-400">Details</th>
+                    <th className="p-4 text-slate-700 dark:text-slate-400">Client Details</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y app-border text-sm">
+                  {isLoadingLogs ? (
+                    <tr>
+                      <td colSpan="5" className="p-8 text-center">
+                        <div className="flex flex-col items-center justify-center gap-3 app-muted">
+                          <div className="h-8 w-8 animate-spin rounded-full border-4 border-red-500 border-t-transparent" />
+                          <span>Fetching activity logs…</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : logs.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="p-8 text-center app-muted">
+                        No activity events recorded yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    logs.map((log) => (
+                      <tr key={log._id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        <td className="p-4 whitespace-nowrap text-xs app-muted">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td className="p-4">
+                          <div className="font-semibold text-slate-950 dark:text-white">{log.userName}</div>
+                          <div className="text-xs app-muted">{log.userEmail}</div>
+                        </td>
+                        <td className="p-4 whitespace-nowrap">
+                          <span
+                            className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getActionBadgeClass(
+                              log.action
+                            )}`}
+                          >
+                            {log.action}
+                          </span>
+                        </td>
+                        <td className="p-4 text-slate-700 dark:text-slate-300 break-words max-w-xs sm:max-w-md">
+                          {log.details}
+                        </td>
+                        <td className="p-4 text-xs app-muted whitespace-nowrap">
+                          <div className="font-semibold text-slate-800 dark:text-slate-300">{log.ipAddress}</div>
+                          <div className="max-w-[150px] truncate" title={log.userAgent}>
+                            {log.userAgent}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {!isLoadingLogs && logsPages > 1 && (
+              <div className="mt-4 flex items-center justify-between border-t app-border pt-4">
+                <p className="text-xs app-muted">
+                  Showing page {logsPage} of {logsPages} ({logsTotal} logs)
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    disabled={logsPage === 1}
+                    onClick={() => setLogsPage((prev) => Math.max(prev - 1, 1))}
+                    className="rounded-lg border app-border px-3 py-1.5 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-50 cursor-pointer text-slate-700 dark:text-slate-300"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    disabled={logsPage === logsPages}
+                    onClick={() => setLogsPage((prev) => Math.min(prev + 1, logsPages))}
+                    className="rounded-lg border app-border px-3 py-1.5 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-50 cursor-pointer text-slate-700 dark:text-slate-300"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </div>

@@ -1,12 +1,14 @@
 import User from "../models/User.js";
 import Video from "../models/Video.js";
 import SiteSetting from "../models/SiteSetting.js";
+import Log from "../models/Log.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import {
   ensureUserRole,
   resolveRoleForEmail,
 } from "../utils/roles.js";
+import { logActivity } from "../utils/logger.js";
 
 
 // REGISTER
@@ -43,6 +45,15 @@ export const registerUser = async (req, res) => {
         expiresIn: "7d",
       }
     );
+
+    await logActivity({
+      userId: user._id,
+      userName: user.name,
+      userEmail: user.email,
+      action: "REGISTER",
+      details: "Registered a new account",
+      req,
+    });
 
     res.status(201).json({
       token,
@@ -102,6 +113,15 @@ export const loginUser = async (req, res) => {
         expiresIn: "7d",
       }
     );
+
+    await logActivity({
+      userId: user._id,
+      userName: user.name,
+      userEmail: user.email,
+      action: "LOGIN",
+      details: "Logged in successfully",
+      req,
+    });
 
     res.json({
       token,
@@ -373,6 +393,15 @@ export const changePassword = async (req, res) => {
 
     await user.save();
 
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "CHANGE_PASSWORD",
+      details: "Changed account password",
+      req,
+    });
+
     res.json({
       message: "Password changed successfully",
     });
@@ -403,6 +432,15 @@ export const updateProfile = async (req, res) => {
     }
 
     await user.save();
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "UPDATE_PROFILE",
+      details: `Updated profile (name: ${name || user.name}, avatar: ${avatar !== undefined ? 'updated' : 'unchanged'})`,
+      req,
+    });
 
     res.json({
       message: "Profile updated successfully",
@@ -513,11 +551,99 @@ export const setSiteGate = async (req, res) => {
       { upsert: true, returnDocument: 'after' }
     );
 
+    let logDetails = "Updated site settings";
+    const detailParts = [];
+    if (typeof enabled === "boolean") {
+      detailParts.push(`gateEnabled: ${enabled}`);
+    }
+    if (typeof threeJsBackgroundEnabled === "boolean") {
+      detailParts.push(`threeJsBackgroundEnabled: ${threeJsBackgroundEnabled}`);
+    }
+    if (password && password.trim().length > 0) {
+      detailParts.push("accessPassword: updated");
+    }
+    if (detailParts.length > 0) {
+      logDetails += ` (${detailParts.join(", ")})`;
+    }
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "CHANGE_GATE_SETTINGS",
+      details: logDetails,
+      req,
+    });
+
     res.json({
       message: "Site settings updated",
       gateEnabled: settings.gateEnabled,
       hasPassword: !!settings.gatePasswordHash,
       threeJsBackgroundEnabled: settings.threeJsBackgroundEnabled !== false,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ADMIN — get activity logs
+export const getActivityLogs = async (req, res) => {
+  try {
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.max(Number(req.query.limit) || 50, 1);
+    const skip = (page - 1) * limit;
+
+    const logs = await Log.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Log.countDocuments();
+
+    res.json({
+      logs,
+      page,
+      pages: Math.ceil(total / limit),
+      total,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ADMIN — clear activity logs (all or older than X days)
+export const clearActivityLogs = async (req, res) => {
+  try {
+    const { clearAll, olderThanDays } = req.body;
+
+    let query = {};
+    let message = "Activity logs cleared";
+
+    if (clearAll) {
+      query = {};
+      message = "All activity logs cleared successfully";
+    } else if (Number.isFinite(olderThanDays) && olderThanDays > 0) {
+      const cutOffDate = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
+      query = { createdAt: { $lt: cutOffDate } };
+      message = `Activity logs older than ${olderThanDays} days cleared successfully`;
+    } else {
+      return res.status(400).json({ message: "Invalid clear options" });
+    }
+
+    const result = await Log.deleteMany(query);
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "CLEAR_LOGS",
+      details: `${message} (Deleted ${result.deletedCount} entries)`,
+      req,
+    });
+
+    res.json({
+      message,
+      deletedCount: result.deletedCount,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

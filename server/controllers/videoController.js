@@ -1,6 +1,6 @@
 import Video from "../models/Video.js";
-
 import driveService from "../config/googleDrive.js";
+import { logActivity } from "../utils/logger.js";
 
 const metadataCache = new Map();
 const METADATA_CACHE_MS = 5 * 60 * 1000;
@@ -308,6 +308,19 @@ export const streamVideo = async (
     }
 
     const range = req.headers.range;
+
+    const isFirstChunk = !range || range.startsWith("bytes=0-");
+    if (isFirstChunk) {
+      await logActivity({
+        userId: req.user._id,
+        userName: req.user.name,
+        userEmail: req.user.email,
+        action: "WATCH_DRIVE_VIDEO",
+        details: `Started watching video: ${video.title} (File ID: ${fileId})`,
+        req,
+      });
+    }
+
     const contentType =
       metadata.mimeType?.startsWith("video/")
         ? metadata.mimeType

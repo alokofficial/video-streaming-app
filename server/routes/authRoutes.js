@@ -14,6 +14,8 @@ import {
   verifySiteGate,
   getSiteGateSettings,
   setSiteGate,
+  getActivityLogs,
+  clearActivityLogs,
 } from "../controllers/authController.js";
 import {
   protect,
@@ -71,6 +73,20 @@ router.put(
   protect,
   authorizeRoles("admin"),
   setSiteGate
+);
+
+router.get(
+  "/logs",
+  protect,
+  authorizeRoles("admin"),
+  getActivityLogs
+);
+
+router.delete(
+  "/logs",
+  protect,
+  authorizeRoles("admin"),
+  clearActivityLogs
 );
 
 export default router;

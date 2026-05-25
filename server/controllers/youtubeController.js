@@ -1,5 +1,6 @@
 import YoutubeVideo from "../models/YoutubeVideo.js";
 import { encrypt, decrypt } from "../utils/encryption.js";
+import { logActivity } from "../utils/logger.js";
 
 const normalizeEmailList = (emails) => {
   const emailList = Array.isArray(emails)
@@ -165,6 +166,15 @@ export const embedYoutubeVideo = async (req, res) => {
 
     const videoId = decrypt(video.encryptedVideoId);
     
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "WATCH_YOUTUBE_VIDEO",
+      details: `Requested embed for YouTube video: ${video.title} (Video ID: ${videoId})`,
+      req,
+    });
+
     // We send an HTML document containing the iframe directly.
     // This hides the actual YouTube URL from the React frontend API responses.
     const html = `
