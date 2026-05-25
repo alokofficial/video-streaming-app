@@ -7,77 +7,88 @@ import VideoPlayer from "./pages/VideoPlayer";
 import YoutubePlayer from "./pages/YoutubePlayer";
 import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
+import SiteGate from "./pages/SiteGate";
 
 import ProtectedRoute from "./components/ProtectedRoute";
+import SiteGateGuard from "./components/SiteGateGuard";
 import Admin from "./pages/Admin";
+
+import { SiteGateProvider } from "./context/SiteGateContext";
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Protected Home Route */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
+    <SiteGateProvider>
+      <BrowserRouter>
+        <SiteGateGuard>
+          <Routes>
+            {/* Site Access Gate — always accessible */}
+            <Route path="/gate" element={<SiteGate />} />
 
-        {/* Login Route */}
-        <Route path="/login" element={<Login />} />
+            {/* Protected Home Route */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              }
+            />
 
-        {/* Register Route */}
-        <Route path="/register" element={<Register />} />
+            {/* Login Route */}
+            <Route path="/login" element={<Login />} />
 
-        {/* Watch Route */}
-        <Route
-          path="/watch/:fileId"
-          element={
-            <ProtectedRoute>
-              <VideoPlayer />
-            </ProtectedRoute>
-          }
-        />
+            {/* Register Route */}
+            <Route path="/register" element={<Register />} />
 
-        {/* Youtube Watch Route */}
-        <Route
-          path="/youtube/:videoId"
-          element={
-            <ProtectedRoute>
-              <YoutubePlayer />
-            </ProtectedRoute>
-          }
-        />
-        
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <Admin />
-            </ProtectedRoute>
-          }
-        />
+            {/* Watch Route */}
+            <Route
+              path="/watch/:fileId"
+              element={
+                <ProtectedRoute>
+                  <VideoPlayer />
+                </ProtectedRoute>
+              }
+            />
 
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
+            {/* Youtube Watch Route */}
+            <Route
+              path="/youtube/:videoId"
+              element={
+                <ProtectedRoute>
+                  <YoutubePlayer />
+                </ProtectedRoute>
+              }
+            />
 
-        <Route
-          path="/change-password"
-          element={
-            <ProtectedRoute>
-              <ChangePassword />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Admin />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/change-password"
+              element={
+                <ProtectedRoute>
+                  <ChangePassword />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </SiteGateGuard>
+      </BrowserRouter>
+    </SiteGateProvider>
   );
 }

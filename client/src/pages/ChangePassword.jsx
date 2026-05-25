@@ -61,62 +61,80 @@ export default function ChangePassword() {
       <div className="mx-auto max-w-xl p-6">
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl app-panel p-6"
+          className="rounded-xl border border-slate-200 dark:border-white/5 app-panel p-6 shadow-2xl backdrop-blur-lg bg-white/80 dark:bg-black/30"
         >
-          <h1 className="mb-6 text-3xl font-bold">
+          <h1 className="mb-6 text-3xl font-extrabold tracking-tight">
             Change Password
           </h1>
 
           {message && (
-            <p className="mb-4 rounded bg-green-950 p-3 text-green-200">
+            <div className="mb-6 rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm text-emerald-600 dark:text-emerald-300 font-medium">
               {message}
-            </p>
+            </div>
           )}
 
           {error && (
-            <p className="mb-4 rounded bg-red-950 p-3 text-red-200">
+            <div className="mb-6 rounded-lg bg-rose-500/10 border border-rose-500/30 p-3 text-sm text-rose-600 dark:text-rose-300 font-medium">
               {error}
-            </p>
+            </div>
           )}
 
-          <input
-            type="password"
-            placeholder="Current Password"
-            className="mb-4 w-full rounded app-soft-surface p-3"
-            value={currentPassword}
-            onChange={(e) =>
-              setCurrentPassword(e.target.value)
-            }
-          />
+          <div className="mb-4">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+              Current Password
+            </label>
+            <input
+              type="password"
+              required
+              placeholder="Enter current password"
+              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              value={currentPassword}
+              onChange={(e) =>
+                setCurrentPassword(e.target.value)
+              }
+            />
+          </div>
 
-          <input
-            type="password"
-            placeholder="New Password"
-            className="mb-4 w-full rounded app-soft-surface p-3"
-            value={newPassword}
-            onChange={(e) =>
-              setNewPassword(e.target.value)
-            }
-          />
+          <div className="mb-4">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+              New Password
+            </label>
+            <input
+              type="password"
+              required
+              placeholder="Minimum 6 characters"
+              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              value={newPassword}
+              onChange={(e) =>
+                setNewPassword(e.target.value)
+              }
+            />
+          </div>
 
-          <input
-            type="password"
-            placeholder="Confirm New Password"
-            className="mb-4 w-full rounded app-soft-surface p-3"
-            value={confirmPassword}
-            onChange={(e) =>
-              setConfirmPassword(e.target.value)
-            }
-          />
+          <div className="mb-6">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+              Confirm New Password
+            </label>
+            <input
+              type="password"
+              required
+              placeholder="Confirm new password"
+              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              value={confirmPassword}
+              onChange={(e) =>
+                setConfirmPassword(e.target.value)
+              }
+            />
+          </div>
 
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full rounded bg-red-600 p-3 font-semibold disabled:cursor-not-allowed disabled:bg-gray-700"
+            className="w-full rounded-xl btn-primary-red p-3.5 font-bold tracking-wide disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none"
           >
             {isSaving
-              ? "Changing Password..."
-              : "Change Password"}
+              ? "Saving New Password..."
+              : "Update Password"}
           </button>
         </form>
       </div>

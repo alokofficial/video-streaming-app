@@ -331,21 +331,21 @@ export default function Home() {
       />
 
       <div className="p-4 sm:p-6">
-        <div className="mb-6 flex flex-col gap-4 sm:mb-8 lg:flex-row lg:items-center lg:justify-between">
-          <h1 className="text-3xl font-bold sm:text-4xl">
+        <div className="mb-4 flex flex-col gap-3 sm:mb-8 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <h1 className="text-2xl font-bold sm:text-4xl">
             {selectedUser
               ? `${selectedUser.name}'s Library`
               : "Contents"}
           </h1>
 
-          <div className="flex w-full flex-col gap-3 sm:flex-row lg:max-w-2xl">
+          <div className="flex w-full flex-col gap-2.5 sm:flex-row lg:max-w-2xl">
             <select
               aria-label="Sort content"
               value={sortOption}
               onChange={(e) =>
                 setSortOption(e.target.value)
               }
-              className="rounded-lg border app-border app-surface px-3 py-3 text-sm outline-none transition focus:border-red-500 sm:w-48"
+              className="w-full rounded-lg border app-border app-surface px-3 py-2.5 text-sm outline-none transition focus:border-red-500 sm:w-44"
             >
               <option value="default">
                 Sort: Default
@@ -404,7 +404,7 @@ export default function Home() {
         )}
 
         {hasSearchResults && (
-          <div className="mb-8 flex gap-3 overflow-x-auto border-b app-border pb-4 sm:flex-wrap sm:gap-4">
+          <div className="mb-6 flex gap-3 overflow-x-auto scrollbar-hide border-b app-border pb-3 sm:flex-wrap sm:gap-4">
             <button
               onClick={() => setActiveTab("All")}
               className={`shrink-0 px-4 py-2 font-semibold transition-colors ${
@@ -465,43 +465,44 @@ export default function Home() {
                   {category}
                 </h2>
 
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {groupedContent[category].map((item) => (
                             <Link
                               key={`${item.contentType}-${item._id}`}
                               to={item.href}
+                              className="group"
                             >
-                              <div className="overflow-hidden rounded-lg app-surface transition duration-300 hover:scale-105">
-                                <div className="relative">
-                                  <img
-                                    src={item.thumbnail}
-                                    alt={item.title}
-                                    className="aspect-video w-full object-cover"
-                                  />
+                              <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-white/5 app-panel aspect-video shadow-md hover:shadow-2xl dark:shadow-black/50 transition-all duration-300 transform hover:-translate-y-1 hover:border-red-500/30">
+                                {/* Video Thumbnail */}
+                                <img
+                                  src={item.thumbnail}
+                                  alt={item.title}
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
 
-                                  <span
-                                    className={`absolute bottom-3 right-3 max-w-[calc(100%-1.5rem)] truncate rounded px-2 py-1 text-xs font-bold ${
-                                      item.contentType ===
-                                      "youtube"
-                                        ? "bg-red-600"
-                                        : "bg-blue-600"
-                                    }`}
-                                  >
-                                    {item.contentType ===
-                                    "youtube"
-                                      ? "YouTube"
-                                      : item.subheading}
-                                  </span>
-                                </div>
+                                {/* Video Type Badge */}
+                                <span
+                                  className={`absolute top-3 right-3 z-10 rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white shadow-sm ${
+                                    item.contentType === "youtube"
+                                      ? "bg-red-600/70 border-red-500/30"
+                                      : "bg-blue-600/70 border-blue-500/30"
+                                  }`}
+                                >
+                                  {item.contentType === "youtube"
+                                    ? "YouTube"
+                                    : item.subheading}
+                                </span>
 
-                                <div className="p-4">
-                                  <h4 className="text-lg font-semibold sm:text-xl">
+                                {/* Hover Info Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                  <h4 className="text-sm font-extrabold text-white leading-tight transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
                                     {item.title}
                                   </h4>
-
-                                  <p className="mt-2 app-muted">
-                                    {item.description}
-                                  </p>
+                                  {item.description && (
+                                    <p className="mt-1 text-[11px] text-white/70 line-clamp-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75">
+                                      {item.description}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </Link>

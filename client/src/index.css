@@ -91,10 +91,168 @@ body {
   box-shadow: 0 18px 50px rgb(15 23 42 / 0.12);
 }
 
-:root.theme-light .three-background {
+:root.theme-light .hover\:text-white:hover {
+  color: var(--app-text) !important;
+}
+
+/* Tactile Premium Buttons */
+.btn-primary-red {
+  background: linear-gradient(180deg, #f43f5e 0%, #e11d48 100%);
+  color: #ffffff;
+  border: 1px solid #be123c;
+  border-top-color: rgba(255, 255, 255, 0.25);
+  border-bottom-color: #9f1239;
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 4px 12px rgba(225, 29, 72, 0.15);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: justify-center;
+  justify-content: center;
+}
+.btn-primary-red:hover:not(:disabled) {
+  background: linear-gradient(180deg, #fda4af 0%, #f43f5e 100%);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 6px 16px rgba(225, 29, 72, 0.25);
+}
+.btn-primary-red:active:not(:disabled) {
+  background: #be123c;
+  transform: translateY(1px);
+  border-bottom-color: transparent;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary-blue {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+  border-top-color: rgba(255, 255, 255, 0.25);
+  border-bottom-color: #1e40af;
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 4px 12px rgba(37, 99, 235, 0.15);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: justify-center;
+  justify-content: center;
+}
+.btn-primary-blue:hover:not(:disabled) {
+  background: linear-gradient(180deg, #93c5fd 0%, #3b82f6 100%);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 6px 16px rgba(37, 99, 235, 0.25);
+}
+.btn-primary-blue:active:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(1px);
+  border-bottom-color: transparent;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-secondary {
+  background: var(--app-soft-surface);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+  border-top-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+  align-items: justify-center;
+  justify-content: center;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--app-hover);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 4px 10px rgba(0, 0, 0, 0.08);
+}
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.15),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-nav-control {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-top-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-nav-control:hover:not(:disabled) {
+  background: var(--app-hover);
+  transform: translateY(-0.5px);
+  box-shadow: 
+    0 3px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.btn-nav-control:active:not(:disabled) {
+  transform: translateY(0.5px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+/* ─────────────────────────────────────────
+   Mobile utilities
+───────────────────────────────────────── */
+
+/* Hide scrollbar on horizontal scroll areas (tab bars, etc.) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
-:root.theme-light .hover\:text-white:hover {
-  color: var(--app-text) !important;
+/* Smooth momentum scrolling on iOS */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure inputs never zoom on iOS (font-size must be ≥16px) */
+input,
+select,
+textarea {
+  font-size: max(16px, 1em);
+}
+
+/* Prevent text size adjustment on orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Safe area insets for notched phones */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Prevent horizontal overflow on body */
+body {
+  overflow-x: hidden;
+}
+
+/* Better tap targets on mobile */
+button, a, [role="button"] {
+  touch-action: manipulation;
 }

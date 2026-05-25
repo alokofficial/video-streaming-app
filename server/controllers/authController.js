@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import Video from "../models/Video.js";
+import SiteSetting from "../models/SiteSetting.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import {
@@ -51,6 +52,7 @@ export const registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatar: user.avatar || "",
       },
     });
   } catch (error) {
@@ -108,6 +110,7 @@ export const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatar: user.avatar || "",
       },
     });
 
@@ -154,6 +157,7 @@ export const getUsers = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatar: user.avatar || "",
         createdAt: user.createdAt,
         lastLoginAt: user.lastLoginAt,
         accessibleVideos,
@@ -227,6 +231,7 @@ export const createUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatar: user.avatar || "",
         createdAt: user.createdAt,
         lastLoginAt: user.lastLoginAt,
         accessibleVideos: 0,
@@ -375,5 +380,139 @@ export const changePassword = async (req, res) => {
     res.status(500).json({
       message: error.message,
     });
+  }
+};
+
+// UPDATE PROFILE
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, avatar } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    if (name !== undefined) {
+      user.name = name;
+    }
+    if (avatar !== undefined) {
+      user.avatar = avatar;
+    }
+
+    await user.save();
+
+    res.json({
+      message: "Profile updated successfully",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar || "",
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+// ───────────────────────────────────────────
+// SITE GATE
+// ───────────────────────────────────────────
+
+// Helper: get or create singleton settings doc
+const getSettings = () =>
+  SiteSetting.findOneAndUpdate(
+    { _id: "site_settings" },
+    { $setOnInsert: { _id: "site_settings" } },
+    { upsert: true, new: true }
+  );
+
+// PUBLIC — returns only whether gate is on (never exposes hash)
+export const getSiteGateStatus = async (req, res) => {
+  try {
+    const settings = await getSettings();
+    res.json({
+      gateEnabled: settings.gateEnabled && !!settings.gatePasswordHash,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// PUBLIC — verify access code submitted by visitor
+export const verifySiteGate = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ message: "Access code is required" });
+    }
+
+    const settings = await getSettings();
+
+    if (!settings.gateEnabled || !settings.gatePasswordHash) {
+      return res.json({ success: true }); // gate is off — always pass
+    }
+
+    const match = await bcrypt.compare(password, settings.gatePasswordHash);
+    if (!match) {
+      return res.status(401).json({ message: "Incorrect access code" });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ADMIN — get full settings (for admin dashboard)
+export const getSiteGateSettings = async (req, res) => {
+  try {
+    const settings = await getSettings();
+    res.json({
+      gateEnabled: settings.gateEnabled,
+      hasPassword: !!settings.gatePasswordHash,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ADMIN — set/update gate (toggle, change password)
+export const setSiteGate = async (req, res) => {
+  try {
+    const { enabled, password } = req.body;
+
+    const update = {};
+
+    if (typeof enabled === "boolean") {
+      update.gateEnabled = enabled;
+    }
+
+    if (password && password.trim().length > 0) {
+      if (password.length < 4) {
+        return res.status(400).json({ message: "Access code must be at least 4 characters" });
+      }
+      update.gatePasswordHash = await bcrypt.hash(password, 12);
+    }
+
+    const settings = await SiteSetting.findOneAndUpdate(
+      { _id: "site_settings" },
+      { $set: update },
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      message: "Site gate settings updated",
+      gateEnabled: settings.gateEnabled,
+      hasPassword: !!settings.gatePasswordHash,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

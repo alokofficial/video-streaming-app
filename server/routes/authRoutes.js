@@ -9,6 +9,11 @@ import {
   deleteUser,
   getHeadingOrder,
   updateHeadingOrder,
+  updateProfile,
+  getSiteGateStatus,
+  verifySiteGate,
+  getSiteGateSettings,
+  setSiteGate,
 } from "../controllers/authController.js";
 import {
   protect,
@@ -19,6 +24,7 @@ const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.put("/profile", protect, updateProfile);
 router.put("/change-password", protect, changePassword);
 router.get(
   "/preferences/heading-order",
@@ -47,6 +53,24 @@ router.delete(
   protect,
   authorizeRoles("admin"),
   deleteUser
+);
+
+// Site Gate — public
+router.get("/site-gate", getSiteGateStatus);
+router.post("/site-gate/verify", verifySiteGate);
+
+// Site Gate — admin only
+router.get(
+  "/site-gate/settings",
+  protect,
+  authorizeRoles("admin"),
+  getSiteGateSettings
+);
+router.put(
+  "/site-gate",
+  protect,
+  authorizeRoles("admin"),
+  setSiteGate
 );
 
 export default router;

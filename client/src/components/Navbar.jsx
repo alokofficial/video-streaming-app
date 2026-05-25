@@ -39,7 +39,7 @@ export default function Navbar({
 
   const headerTitle = useMemo(() => {
     if (!token) {
-      return "Learning App";
+      return "Flow Learn";
     }
 
     if (location.pathname === "/admin") {
@@ -171,13 +171,22 @@ export default function Navbar({
 
   return (
     <nav className="app-panel sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b p-3 backdrop-blur-md transition-all duration-300 sm:p-4">
-      <Link to="/" className="min-w-0 flex-1 basis-40">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-400 sm:text-xs sm:tracking-[0.2em]">
-          Learning App
-        </p>
-        <h1 className="truncate text-base font-bold sm:text-2xl">
-          {headerTitle}
-        </h1>
+      <Link to="/" className="flex items-center gap-3 min-w-0 flex-1 basis-40 group">
+        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-black/20 p-0.5 shadow-sm transition-all duration-300 transform group-hover:scale-105 group-hover:border-red-500/30">
+          <img
+            src="/logo.png"
+            alt="Flow Learn Logo"
+            className="h-full w-full object-cover rounded-md"
+          />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-red-500 dark:text-red-400 sm:text-xs sm:tracking-[0.2em] transition-colors group-hover:text-red-400">
+            Flow Learn
+          </p>
+          <h1 className="truncate text-sm font-bold sm:text-lg leading-tight">
+            {headerTitle}
+          </h1>
+        </div>
       </Link>
 
       <div className="shrink-0">
@@ -206,7 +215,7 @@ export default function Navbar({
                 title="Back"
                 disabled={!canGoBack}
                 onClick={handleBack}
-                className="app-surface app-hover flex h-9 w-9 items-center justify-center rounded disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-nav-control flex h-9 w-9 items-center justify-center rounded-lg disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <svg
                   aria-hidden="true"
@@ -229,7 +238,7 @@ export default function Navbar({
                 title="Forward"
                 disabled={!canGoForward}
                 onClick={handleForward}
-                className="app-surface app-hover flex h-9 w-9 items-center justify-center rounded disabled:cursor-not-allowed disabled:opacity-40"
+                className="btn-nav-control flex h-9 w-9 items-center justify-center rounded-lg disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <svg
                   aria-hidden="true"
@@ -348,15 +357,18 @@ export default function Navbar({
               }
               className="app-hover flex flex-col items-center gap-1 rounded px-1 py-1 sm:px-2"
             >
-              <span className="app-soft-surface flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10">
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-6 w-6"
-                  fill="currentColor"
-                >
-                  <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5Zm0 2c-3.31 0-10 1.66-10 5v2h20v-2c0-3.34-6.69-5-10-5Z" />
-                </svg>
+              <span className="app-soft-surface flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 overflow-hidden border border-slate-200 dark:border-white/10 shadow-inner">
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-rose-500 to-indigo-600 font-bold text-white uppercase text-xs">
+                    {user?.name?.charAt(0) || "U"}
+                  </div>
+                )}
               </span>
 
               <span className="app-muted max-w-[72px] truncate text-[11px] sm:max-w-[120px] sm:text-xs">
@@ -368,15 +380,18 @@ export default function Navbar({
               <div className="app-panel light-shadow absolute right-0 top-14 z-20 w-[calc(100vw-1.5rem)] max-w-72 rounded-lg border p-4 shadow-xl sm:top-16">
                 <div className="app-border mb-4 border-b pb-4">
                   <div className="flex items-center gap-3">
-                    <span className="app-soft-surface flex h-11 w-11 items-center justify-center rounded-full">
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        className="h-7 w-7"
-                        fill="currentColor"
-                      >
-                        <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5Zm0 2c-3.31 0-10 1.66-10 5v2h20v-2c0-3.34-6.69-5-10-5Z" />
-                      </svg>
+                    <span className="app-soft-surface flex h-11 w-11 items-center justify-center rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shadow-inner">
+                      {user?.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-rose-500 to-indigo-600 font-bold text-white uppercase text-sm">
+                          {user?.name?.charAt(0) || "U"}
+                        </div>
+                      )}
                     </span>
 
                     <div className="min-w-0">

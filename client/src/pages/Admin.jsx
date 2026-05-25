@@ -179,6 +179,17 @@ export default function Admin() {
 
   const [youtubeSearchTerm, setYoutubeSearchTerm] = useState("");
   const [youtubePage, setYoutubePage] = useState(1);
+
+  // ── Site Gate state ──
+  const [gateEnabled, setGateEnabled] = useState(false);
+  const [gateHasPassword, setGateHasPassword] = useState(false);
+  const [newGatePassword, setNewGatePassword] = useState("");
+  const [confirmGatePassword, setConfirmGatePassword] = useState("");
+  const [gateSaving, setGateSaving] = useState(false);
+  const [gateMsg, setGateMsg] = useState("");
+  const [gateError, setGateError] = useState("");
+  const [gateLoading, setGateLoading] = useState(true);
+
   const headingOptions = getUniqueHeadings([
     ...videos,
     ...youtubeVideos,
@@ -232,11 +243,25 @@ export default function Admin() {
     }
   }, []);
 
+  const fetchGateSettings = useCallback(async () => {
+    try {
+      setGateLoading(true);
+      const { data } = await API.get("/auth/site-gate/settings");
+      setGateEnabled(data.gateEnabled);
+      setGateHasPassword(data.hasPassword);
+    } catch {
+      // silently ignore
+    } finally {
+      setGateLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchVideos();
     fetchYoutubeVideos();
     fetchUsers();
-  }, [fetchVideos, fetchYoutubeVideos, fetchUsers]);
+    fetchGateSettings();
+  }, [fetchVideos, fetchYoutubeVideos, fetchUsers, fetchGateSettings]);
 
   const resetForm = () => {
     setTitle(emptyForm.title);
@@ -618,7 +643,7 @@ export default function Admin() {
 
       <div className="p-4 sm:p-6">
 
-        <div className="mb-6 flex gap-3 overflow-x-auto border-b app-border pb-4 sm:mb-8 sm:gap-4">
+        <div className="mb-6 flex gap-3 overflow-x-auto scrollbar-hide border-b app-border pb-4 sm:mb-8 sm:gap-4">
           <button
             onClick={() => setActiveTab("users")}
             className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
@@ -660,6 +685,14 @@ export default function Admin() {
             {editingYoutubeVideoId
               ? "Edit YouTube"
               : "Add YouTube"}
+          </button>
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
+              activeTab === "settings" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
+            }`}
+          >
+            ⚙️ Settings
           </button>
         </div>
 
@@ -737,9 +770,18 @@ export default function Admin() {
                           type="button"
                           className="flex items-center gap-3 rounded-full app-soft-surface px-3 py-2 text-left font-semibold transition hover:bg-gray-700"
                         >
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm uppercase">
-                            {user.name?.charAt(0) ||
-                              "U"}
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full overflow-hidden border border-white/10 shadow-inner">
+                            {user.avatar ? (
+                              <img
+                                src={user.avatar}
+                                alt={user.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-rose-500 to-indigo-600 text-[11px] font-bold text-white uppercase">
+                                {user.name?.charAt(0) || "U"}
+                              </div>
+                            )}
                           </span>
                           <span className="max-w-[160px] truncate">
                             {user.name}
@@ -770,7 +812,7 @@ export default function Admin() {
                           onClick={() =>
                             handleDeleteUser(user)
                           }
-                          className="rounded bg-red-700 px-3 py-2 font-semibold disabled:cursor-not-allowed disabled:bg-gray-700 disabled:app-muted"
+                          className="rounded-xl btn-primary-red px-3 py-2 font-bold disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none"
                         >
                           Delete
                         </button>
@@ -807,12 +849,12 @@ export default function Admin() {
 
           <form
             onSubmit={handleCreateUser}
-            className="mt-6 grid gap-4 rounded-xl app-panel p-4 md:grid-cols-[1fr_1fr_1fr_160px_auto]"
+            className="mt-6 grid gap-4 rounded-xl border border-slate-200 dark:border-white/5 app-panel p-5 md:grid-cols-[1fr_1fr_1fr_160px_auto] items-center shadow-xl backdrop-blur-lg bg-white/80 dark:bg-black/20"
           >
             <input
               type="text"
               placeholder="Name"
-              className="rounded app-soft-surface p-3"
+              className="rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
               value={newUserName}
               onChange={(e) =>
                 setNewUserName(e.target.value)
@@ -822,7 +864,7 @@ export default function Admin() {
             <input
               type="email"
               placeholder="Email"
-              className="rounded app-soft-surface p-3"
+              className="rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
               value={newUserEmail}
               onChange={(e) =>
                 setNewUserEmail(e.target.value)
@@ -832,7 +874,7 @@ export default function Admin() {
             <input
               type="password"
               placeholder="Password"
-              className="rounded app-soft-surface p-3"
+              className="rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
               value={newUserPassword}
               onChange={(e) =>
                 setNewUserPassword(e.target.value)
@@ -844,7 +886,7 @@ export default function Admin() {
               onChange={(e) =>
                 setNewUserRole(e.target.value)
               }
-              className="rounded app-soft-surface p-3"
+              className="rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
@@ -852,7 +894,7 @@ export default function Admin() {
 
             <button
               type="submit"
-              className="rounded bg-blue-600 px-4 py-3 font-semibold"
+              className="rounded-xl btn-primary-blue px-6 py-3.5 font-bold tracking-wide"
             >
               Add User
             </button>
@@ -967,7 +1009,7 @@ export default function Admin() {
                   <button
                     type="button"
                     onClick={() => handleEdit(video)}
-                    className="rounded bg-blue-600 px-4 py-3 font-semibold"
+                    className="rounded-xl btn-primary-blue px-4 py-3 font-bold text-sm"
                   >
                     Edit
                   </button>
@@ -977,7 +1019,7 @@ export default function Admin() {
                     onClick={() =>
                       handleDelete(video._id)
                     }
-                    className="rounded bg-red-700 px-4 py-3 font-semibold"
+                    className="rounded-xl btn-primary-red px-4 py-3 font-bold text-sm"
                   >
                     Delete
                   </button>
@@ -1104,7 +1146,7 @@ export default function Admin() {
                       onClick={() =>
                         handleYoutubeEdit(video)
                       }
-                      className="rounded bg-blue-600 px-4 py-3 font-semibold"
+                      className="rounded-xl btn-primary-blue px-4 py-3 font-bold text-sm"
                     >
                       Edit
                     </button>
@@ -1114,7 +1156,7 @@ export default function Admin() {
                       onClick={() =>
                         handleYoutubeDelete(video._id)
                       }
-                      className="rounded bg-red-700 px-4 py-3 font-semibold"
+                      className="rounded-xl btn-primary-red px-4 py-3 font-bold text-sm"
                     >
                       Delete
                     </button>
@@ -1152,222 +1194,76 @@ export default function Admin() {
         {activeTab === "videoForm" && (
         <form
           onSubmit={handleSubmit}
-          className="mx-auto max-w-xl rounded-xl app-panel p-4 sm:p-6"
+          className="mx-auto max-w-xl rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 sm:p-8 shadow-2xl backdrop-blur-lg bg-white/80 dark:bg-black/30"
         >
 
-          <h1 className="mb-6 text-2xl font-bold sm:text-3xl">
+          <h1 className="mb-6 text-3xl font-extrabold tracking-tight">
             {editingVideoId
               ? "Edit Video"
               : "Add Video"}
           </h1>
 
-          <input
-            type="text"
-            placeholder="Video Title"
-            className="w-full p-3 app-soft-surface rounded"
-            value={title}
-            onChange={(e) =>
-              setTitle(e.target.value)
-            }
-          />
-          <p className="mb-4 mt-1 text-sm app-muted">
-            {countLetters(title)} / {fieldLimits.title} letters
-          </p>
-
-          <textarea
-            placeholder="Description"
-            className="w-full p-3 app-soft-surface rounded"
-            value={description}
-            onChange={(e) =>
-              setDescription(e.target.value)
-            }
-          />
-          <p className="mb-4 mt-1 text-sm app-muted">
-            {countLetters(description)} /{" "}
-            {fieldLimits.description} letters
-          </p>
-
-          <select
-            value={
-              categoryInputMode === "other"
-                ? HEADING_OTHER_VALUE
-                : category
-            }
-            onChange={(e) => {
-              if (
-                e.target.value === HEADING_OTHER_VALUE
-              ) {
-                setCategoryInputMode("other");
-                setCategory("");
-                return;
-              }
-
-              setCategoryInputMode("existing");
-              setCategory(e.target.value);
-            }}
-            className="mb-4 w-full rounded app-soft-surface p-3"
-          >
-            <option value="">
-              Select heading/category
-            </option>
-            {headingOptions.map((heading) => (
-              <option key={heading} value={heading}>
-                {heading}
-              </option>
-            ))}
-            <option value={HEADING_OTHER_VALUE}>
-              Other
-            </option>
-          </select>
-
-          {categoryInputMode === "other" && (
+          <div className="mb-4">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+              Video Title
+            </label>
             <input
               type="text"
-              placeholder="Write new heading/category"
-              className="mb-4 w-full rounded app-soft-surface p-3"
-              value={category}
+              required
+              placeholder="e.g. Introduction to React"
+              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              value={title}
               onChange={(e) =>
-                setCategory(e.target.value)
+                setTitle(e.target.value)
               }
             />
-          )}
-
-          <input
-            type="text"
-            placeholder="Subheading"
-            className="w-full p-3 mb-4 app-soft-surface rounded"
-            value={subheading}
-            onChange={(e) =>
-              setSubheading(e.target.value)
-            }
-          />
-
-          <input
-            type="text"
-            placeholder="Google Drive File ID"
-            className="w-full p-3 app-soft-surface rounded"
-            value={driveFileId}
-            onChange={(e) =>
-              setDriveFileId(e.target.value)
-            }
-          />
-          <p className="mb-4 mt-1 text-sm app-muted">
-            {countLetters(driveFileId)} /{" "}
-            {fieldLimits.driveFileId} letters
-          </p>
-
-          <input
-            type="text"
-            placeholder="Thumbnail URL"
-            className="w-full p-3 mb-4 app-soft-surface rounded"
-            value={thumbnail}
-            onChange={(e) =>
-              setThumbnail(e.target.value)
-            }
-          />
-
-          <textarea
-            placeholder="Visible to email IDs. Leave blank for all users."
-            className="w-full p-3 mb-4 app-soft-surface rounded"
-            value={allowedEmails}
-            onChange={(e) =>
-              setAllowedEmails(e.target.value)
-            }
-          />
-
-          <textarea
-            placeholder="Quality options, one per line. Example: 720p: googleDriveFileId"
-            className="w-full p-3 mb-4 app-soft-surface rounded"
-            value={qualities}
-            onChange={(e) =>
-              setQualities(e.target.value)
-            }
-          />
-
-          <button
-            className="w-full bg-red-600 p-3 rounded font-semibold"
-          >
-            {editingVideoId
-              ? "Save Changes"
-              : "Add Video"}
-          </button>
-
-          {editingVideoId && (
-            <button
-              type="button"
-              onClick={() => { resetForm(); setActiveTab("content"); }}
-              className="mt-3 w-full bg-gray-700 p-3 rounded font-semibold"
-            >
-              Cancel Edit
-            </button>
-          )}
-
-        </form>
-        )}
-
-        {activeTab === "youtubeForm" && (
-          <form
-            onSubmit={handleYoutubeSubmit}
-            className="mx-auto max-w-xl rounded-xl app-panel p-4 sm:p-6"
-          >
-            <h1 className="mb-6 text-2xl font-bold sm:text-3xl">
-              {editingYoutubeVideoId
-                ? "Edit YouTube Video"
-                : "Add YouTube Video"}
-            </h1>
-
-            <input
-              type="text"
-              placeholder="Video Title"
-              className="w-full rounded app-soft-surface p-3"
-              value={youtubeTitle}
-              onChange={(e) =>
-                setYoutubeTitle(e.target.value)
-              }
-            />
-            <p className="mb-4 mt-1 text-sm app-muted">
-              {countLetters(youtubeTitle)} /{" "}
-              {fieldLimits.title} letters
+            <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
+              {countLetters(title)} / {fieldLimits.title} characters
             </p>
+          </div>
 
-            <input
-              type="text"
-              placeholder={
-                editingYoutubeVideoId
-                  ? "New YouTube Video ID (optional)"
-                  : "YouTube Video ID"
-              }
-              className="mb-4 w-full rounded app-soft-surface p-3"
-              value={youtubeVideoId}
+          <div className="mb-4">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+              Description
+            </label>
+            <textarea
+              placeholder="Provide a detailed summary of the video content..."
+              rows="3"
+              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              value={description}
               onChange={(e) =>
-                setYoutubeVideoId(e.target.value)
+                setDescription(e.target.value)
               }
             />
+            <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
+              {countLetters(description)} /{" "}
+              {fieldLimits.description} characters
+            </p>
+          </div>
 
+          <div className="mb-4">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+              Category / Heading
+            </label>
             <select
               value={
-                youtubeCategoryInputMode === "other"
+                categoryInputMode === "other"
                   ? HEADING_OTHER_VALUE
-                  : youtubeCategory
+                  : category
               }
               onChange={(e) => {
                 if (
-                  e.target.value ===
-                  HEADING_OTHER_VALUE
+                  e.target.value === HEADING_OTHER_VALUE
                 ) {
-                  setYoutubeCategoryInputMode(
-                    "other"
-                  );
-                  setYoutubeCategory("");
+                  setCategoryInputMode("other");
+                  setCategory("");
                   return;
                 }
 
-                setYoutubeCategoryInputMode(
-                  "existing"
-                );
-                setYoutubeCategory(e.target.value);
+                setCategoryInputMode("existing");
+                setCategory(e.target.value);
               }}
-              className="mb-4 w-full rounded app-soft-surface p-3"
+              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
             >
               <option value="">
                 Select heading/category
@@ -1381,51 +1277,289 @@ export default function Admin() {
                 Other
               </option>
             </select>
+          </div>
 
-            {youtubeCategoryInputMode === "other" && (
+          {categoryInputMode === "other" && (
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                New Category Name
+              </label>
               <input
                 type="text"
+                required
                 placeholder="Write new heading/category"
-                className="mb-4 w-full rounded app-soft-surface p-3"
-                value={youtubeCategory}
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={category}
                 onChange={(e) =>
-                  setYoutubeCategory(e.target.value)
+                  setCategory(e.target.value)
                 }
               />
+            </div>
+          )}
+
+          <div className="mb-4">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+              Subheading
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. Module 1: Getting Started"
+              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              value={subheading}
+              onChange={(e) =>
+                setSubheading(e.target.value)
+              }
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+              Google Drive File ID
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Enter drive file ID"
+              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              value={driveFileId}
+              onChange={(e) =>
+                setDriveFileId(e.target.value)
+              }
+            />
+            <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
+              {countLetters(driveFileId)} /{" "}
+              {fieldLimits.driveFileId} characters
+            </p>
+          </div>
+
+          <div className="mb-4">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+              Thumbnail URL
+            </label>
+            <input
+              type="text"
+              placeholder="Enter image URL"
+              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              value={thumbnail}
+              onChange={(e) =>
+                setThumbnail(e.target.value)
+              }
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+              Visible To Email IDs (comma-separated)
+            </label>
+            <textarea
+              placeholder="e.g. user1@example.com, user2@example.com. Leave blank for public access."
+              rows="2"
+              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              value={allowedEmails}
+              onChange={(e) =>
+                setAllowedEmails(e.target.value)
+              }
+            />
+          </div>
+
+          <div className="mb-6">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+              Quality Options (e.g. Label: DriveID, one per line)
+            </label>
+            <textarea
+              placeholder="Example:&#10;720p: 1a2b3c4d5e...&#10;1080p: 6f7g8h9i0j..."
+              rows="3"
+              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              value={qualities}
+              onChange={(e) =>
+                setQualities(e.target.value)
+              }
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full rounded-xl btn-primary-red p-3.5 font-bold tracking-wide"
+          >
+            {editingVideoId
+              ? "Save Changes"
+              : "Add Video"}
+          </button>
+
+          {editingVideoId && (
+            <button
+              type="button"
+              onClick={() => { resetForm(); setActiveTab("content"); }}
+              className="mt-3 w-full rounded-xl btn-secondary p-3.5 font-bold tracking-wide"
+            >
+              Cancel Edit
+            </button>
+          )}
+
+        </form>
+        )}
+
+        {activeTab === "youtubeForm" && (
+          <form
+            onSubmit={handleYoutubeSubmit}
+            className="mx-auto max-w-xl rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 sm:p-8 shadow-2xl backdrop-blur-lg bg-white/80 dark:bg-black/30"
+          >
+            <h1 className="mb-6 text-3xl font-extrabold tracking-tight">
+              {editingYoutubeVideoId
+                ? "Edit YouTube Video"
+                : "Add YouTube Video"}
+            </h1>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                YouTube Video Title
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Learn Advanced CSS"
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={youtubeTitle}
+                onChange={(e) =>
+                  setYoutubeTitle(e.target.value)
+                }
+              />
+              <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
+                {countLetters(youtubeTitle)} /{" "}
+                {fieldLimits.title} characters
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                {editingYoutubeVideoId
+                  ? "New YouTube Video ID (optional)"
+                  : "YouTube Video ID"}
+              </label>
+              <input
+                type="text"
+                required={!editingYoutubeVideoId}
+                placeholder="e.g. dQw4w9WgXcQ"
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={youtubeVideoId}
+                onChange={(e) =>
+                  setYoutubeVideoId(e.target.value)
+                }
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                Category / Heading
+              </label>
+              <select
+                value={
+                  youtubeCategoryInputMode === "other"
+                    ? HEADING_OTHER_VALUE
+                    : youtubeCategory
+                }
+                onChange={(e) => {
+                  if (
+                    e.target.value ===
+                    HEADING_OTHER_VALUE
+                  ) {
+                    setYoutubeCategoryInputMode(
+                      "other"
+                    );
+                    setYoutubeCategory("");
+                    return;
+                  }
+
+                  setYoutubeCategoryInputMode(
+                    "existing"
+                  );
+                  setYoutubeCategory(e.target.value);
+                }}
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              >
+                <option value="">
+                  Select heading/category
+                </option>
+                {headingOptions.map((heading) => (
+                  <option key={heading} value={heading}>
+                    {heading}
+                  </option>
+                ))}
+                <option value={HEADING_OTHER_VALUE}>
+                  Other
+                </option>
+              </select>
+            </div>
+
+            {youtubeCategoryInputMode === "other" && (
+              <div className="mb-4">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                  New Category Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Write new heading/category"
+                  className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                  value={youtubeCategory}
+                  onChange={(e) =>
+                    setYoutubeCategory(e.target.value)
+                  }
+                />
+              </div>
             )}
 
-            <input
-              type="text"
-              placeholder="Subheading"
-              className="mb-4 w-full rounded app-soft-surface p-3"
-              value={youtubeSubheading}
-              onChange={(e) =>
-                setYoutubeSubheading(e.target.value)
-              }
-            />
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                Subheading
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Chapter 3: Advanced Styles"
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={youtubeSubheading}
+                onChange={(e) =>
+                  setYoutubeSubheading(e.target.value)
+                }
+              />
+            </div>
 
-            <input
-              type="text"
-              placeholder="Thumbnail URL"
-              className="mb-4 w-full rounded app-soft-surface p-3"
-              value={youtubeThumbnail}
-              onChange={(e) =>
-                setYoutubeThumbnail(e.target.value)
-              }
-            />
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                Thumbnail URL
+              </label>
+              <input
+                type="text"
+                placeholder="Enter image URL"
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={youtubeThumbnail}
+                onChange={(e) =>
+                  setYoutubeThumbnail(e.target.value)
+                }
+              />
+            </div>
 
-            <textarea
-              placeholder="Visible to email IDs. Leave blank for all users."
-              className="mb-4 w-full rounded app-soft-surface p-3"
-              value={youtubeAllowedEmails}
-              onChange={(e) =>
-                setYoutubeAllowedEmails(
-                  e.target.value
-                )
-              }
-            />
+            <div className="mb-6">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                Visible To Email IDs (comma-separated)
+              </label>
+              <textarea
+                placeholder="e.g. user1@example.com, user2@example.com. Leave blank for public access."
+                rows="2"
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={youtubeAllowedEmails}
+                onChange={(e) =>
+                  setYoutubeAllowedEmails(
+                    e.target.value
+                  )
+                }
+              />
+            </div>
 
-            <button className="w-full rounded bg-red-600 p-3 font-semibold">
+            <button
+              type="submit"
+              className="w-full rounded-xl btn-primary-red p-3.5 font-bold tracking-wide"
+            >
               {editingYoutubeVideoId
                 ? "Save YouTube Video"
                 : "Add YouTube Video"}
@@ -1438,12 +1572,164 @@ export default function Admin() {
                   resetYoutubeForm();
                   setActiveTab("youtube");
                 }}
-                className="mt-3 w-full rounded bg-gray-700 p-3 font-semibold"
+                className="mt-3 w-full rounded-xl btn-secondary p-3.5 font-bold tracking-wide"
               >
                 Cancel Edit
               </button>
             )}
           </form>
+        )}
+
+        {/* Site Gate Settings Tab */}
+        {activeTab === "settings" && (
+          <div className="mb-8 max-w-xl">
+            <h2 className="text-2xl font-bold sm:text-3xl mb-2">Site Access Gate</h2>
+            <p className="app-muted text-sm mb-6">
+              When enabled, all visitors must enter a secret access code before they can reach the login or register page.
+              The password is stored securely as a bcrypt hash.
+            </p>
+
+            {gateLoading ? (
+              <div className="flex items-center gap-3 text-sm app-muted">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
+                Loading settings…
+              </div>
+            ) : (
+              <div className="rounded-2xl border app-border bg-white/5 dark:bg-black/20 p-6 shadow-lg space-y-6">
+
+                {/* Status indicator */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-sm">Gate Status</p>
+                    <p className="text-xs app-muted mt-0.5">
+                      {gateEnabled && gateHasPassword
+                        ? "🔒 Gate is ON — visitors must enter access code"
+                        : gateEnabled && !gateHasPassword
+                        ? "⚠️ Gate is enabled but no password set yet"
+                        : "🔓 Gate is OFF — visitors can access site freely"}
+                    </p>
+                  </div>
+                  {/* Toggle */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setGateError(""); setGateMsg("");
+                        const { data } = await API.put("/auth/site-gate", { enabled: !gateEnabled });
+                        setGateEnabled(data.gateEnabled);
+                        setGateMsg(data.gateEnabled ? "Gate enabled." : "Gate disabled.");
+                      } catch (err) {
+                        setGateError(getErrorMessage(err));
+                      }
+                    }}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none ${
+                      gateEnabled
+                        ? "bg-red-500 border-red-500"
+                        : "bg-slate-300 dark:bg-slate-600 border-transparent"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ease-in-out mt-0.5 ${
+                        gateEnabled ? "translate-x-5" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="h-px bg-slate-200 dark:bg-white/10" />
+
+                {/* Set / Change Password */}
+                <div>
+                  <p className="font-semibold text-sm mb-1">
+                    {gateHasPassword ? "Change Access Code" : "Set Access Code"}
+                  </p>
+                  <p className="text-xs app-muted mb-4">
+                    {gateHasPassword
+                      ? "A code is currently set. Enter a new one to replace it."
+                      : "No code is set yet. Set one and enable the gate above."}
+                  </p>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider app-muted">
+                        New Access Code
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="Min. 4 characters"
+                        value={newGatePassword}
+                        onChange={(e) => setNewGatePassword(e.target.value)}
+                        className="w-full rounded-xl border app-border bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider app-muted">
+                        Confirm Code
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="Re-enter code"
+                        value={confirmGatePassword}
+                        onChange={(e) => setConfirmGatePassword(e.target.value)}
+                        className="w-full rounded-xl border app-border bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      disabled={gateSaving}
+                      onClick={async () => {
+                        setGateError(""); setGateMsg("");
+                        if (!newGatePassword) {
+                          setGateError("Please enter a new access code."); return;
+                        }
+                        if (newGatePassword.length < 4) {
+                          setGateError("Code must be at least 4 characters."); return;
+                        }
+                        if (newGatePassword !== confirmGatePassword) {
+                          setGateError("Codes do not match."); return;
+                        }
+                        try {
+                          setGateSaving(true);
+                          const { data } = await API.put("/auth/site-gate", { password: newGatePassword });
+                          setGateHasPassword(data.hasPassword);
+                          setGateEnabled(data.gateEnabled);
+                          setNewGatePassword("");
+                          setConfirmGatePassword("");
+                          setGateMsg("Access code saved successfully!");
+                        } catch (err) {
+                          setGateError(getErrorMessage(err));
+                        } finally {
+                          setGateSaving(false);
+                        }
+                      }}
+                      className="w-full rounded-xl btn-primary-red p-3 text-sm font-bold tracking-wide disabled:opacity-50"
+                    >
+                      {gateSaving ? "Saving…" : (gateHasPassword ? "Update Access Code" : "Set Access Code")}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Messages */}
+                {gateMsg && (
+                  <div className="flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-3 text-sm text-emerald-700 dark:text-emerald-300 font-medium">
+                    <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {gateMsg}
+                  </div>
+                )}
+                {gateError && (
+                  <div className="flex items-center gap-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-3 text-sm text-rose-700 dark:text-rose-300 font-medium">
+                    <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {gateError}
+                  </div>
+                )}
+
+              </div>
+            )}
+          </div>
         )}
 
       </div>
