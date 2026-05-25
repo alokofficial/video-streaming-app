@@ -222,6 +222,7 @@ export default function VideoPlayer() {
     isSeekPreviewLoading,
     setIsSeekPreviewLoading,
   ] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   const activeAccentClass = isPlaying
     ? "accent-green-500"
@@ -393,6 +394,24 @@ export default function VideoPlayer() {
         "fullscreenchange",
         handleFullscreenChange
       );
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => {
+      setIsOnline(false);
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
@@ -631,6 +650,31 @@ export default function VideoPlayer() {
                 )}
               />
             </div>
+
+            {!isOnline && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 p-6 text-center backdrop-blur-sm z-30 animate-fade-in">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/10 text-rose-500 mb-4 border border-rose-500/20">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="h-8 w-8"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8.288 15.038a5.25 5.25 0 0 1 7.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c6.99-6.99 18.302-6.99 25.292 0M11.4 18a1.2 1.2 0 1 1 1.2 1.2 1.2 1.2 0 0 1-1.2-1.2Z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">You are Offline</h3>
+                <p className="text-sm text-slate-400 max-w-sm">
+                  Streaming videos requires an active internet connection. Please reconnect to resume streaming.
+                </p>
+              </div>
+            )}
 
             {isLoading && (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">

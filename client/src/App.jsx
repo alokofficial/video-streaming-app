@@ -12,6 +12,8 @@ import SiteGate from "./pages/SiteGate";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SiteGateGuard from "./components/SiteGateGuard";
 import Admin from "./pages/Admin";
+import ReloadPrompt from "./components/ReloadPrompt";
+import OfflineBanner from "./components/OfflineBanner";
 
 import { SiteGateProvider } from "./context/SiteGateContext";
 
@@ -20,6 +22,8 @@ export default function App() {
     <SiteGateProvider>
       <BrowserRouter>
         <SiteGateGuard>
+          <ReloadPrompt />
+          <OfflineBanner />
           <Routes>
             {/* Site Access Gate — always accessible */}
             <Route path="/gate" element={<SiteGate />} />

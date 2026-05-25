@@ -430,7 +430,7 @@ const getSettings = () =>
   SiteSetting.findOneAndUpdate(
     { _id: "site_settings" },
     { $setOnInsert: { _id: "site_settings" } },
-    { upsert: true, new: true }
+    { upsert: true, returnDocument: 'after' }
   );
 
 // PUBLIC — returns only whether gate is on (never exposes hash)
@@ -504,7 +504,7 @@ export const setSiteGate = async (req, res) => {
     const settings = await SiteSetting.findOneAndUpdate(
       { _id: "site_settings" },
       { $set: update },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     res.json({
