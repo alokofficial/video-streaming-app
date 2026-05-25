@@ -14,6 +14,17 @@ export const logActivity = async ({ userId, userName, userEmail, action, details
       ipAddress,
       userAgent,
     });
+
+    // Cap total logs to 200 entries
+    const count = await Log.countDocuments();
+    if (count >= 200) {
+      const logsToKeep = await Log.find()
+        .sort({ createdAt: -1 })
+        .limit(200)
+        .select("_id");
+      const keepIds = logsToKeep.map((log) => log._id);
+      await Log.deleteMany({ _id: { $nin: keepIds } });
+    }
   } catch (error) {
     console.error("Failed to log activity:", error);
   }

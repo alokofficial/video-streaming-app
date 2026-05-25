@@ -48,24 +48,85 @@ export default function PdfViewer() {
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const doc = document;
+      const isCurrentlyFullscreen = !!(
+        doc.fullscreenElement ||
+        doc.webkitFullscreenElement ||
+        doc.mozFullScreenElement ||
+        doc.msFullscreenElement
+      );
+      setIsFullscreen(isCurrentlyFullscreen);
     };
+
     document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
     };
   }, []);
 
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isFullscreen]);
+
   const toggleFullscreen = async () => {
     if (!containerRef.current) return;
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else {
-        await containerRef.current.requestFullscreen();
+
+    // Check if browser has native fullscreen support on elements
+    const hasNativeSupport = !!(
+      containerRef.current.requestFullscreen ||
+      containerRef.current.webkitRequestFullscreen ||
+      containerRef.current.mozRequestFullScreen ||
+      containerRef.current.msRequestFullscreen
+    );
+
+    const doc = document;
+    const fullscreenElement = 
+      doc.fullscreenElement || 
+      doc.webkitFullscreenElement || 
+      doc.mozFullScreenElement || 
+      doc.msFullscreenElement;
+
+    if (hasNativeSupport) {
+      try {
+        if (fullscreenElement) {
+          // Native fullscreen is active, exit it
+          if (doc.exitFullscreen) await doc.exitFullscreen();
+          else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
+          else if (doc.mozCancelFullScreen) await doc.mozCancelFullScreen();
+          else if (doc.msExitFullscreen) await doc.msExitFullscreen();
+        } else if (isFullscreen) {
+          // We are in simulated fullscreen, exit simulated fullscreen
+          setIsFullscreen(false);
+        } else {
+          // Enter native fullscreen
+          const el = containerRef.current;
+          if (el.requestFullscreen) await el.requestFullscreen();
+          else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+          else if (el.mozRequestFullScreen) await el.mozRequestFullScreen();
+          else if (el.msRequestFullscreen) await el.msRequestFullscreen();
+        }
+      } catch (err) {
+        console.error("Error toggling native fullscreen, falling back to simulated:", err);
+        // Fallback to simulated fullscreen
+        setIsFullscreen((prev) => !prev);
       }
-    } catch (err) {
-      console.error("Error toggling fullscreen:", err);
+    } else {
+      // No native support (e.g. iOS Safari on iPhone) -> Fallback to simulated fullscreen
+      setIsFullscreen((prev) => !prev);
     }
   };
 
@@ -121,10 +182,10 @@ export default function PdfViewer() {
         <div 
           ref={containerRef}
           onContextMenu={(e) => isNormalUser && e.preventDefault()}
-          className={`relative w-full overflow-hidden border border-white/5 app-panel shadow-xl transition-all duration-300 ${
+          className={`overflow-hidden transition-all duration-300 ${
             isFullscreen 
-              ? "h-screen w-screen bg-black" 
-              : "aspect-[4/3] rounded-2xl md:aspect-auto md:h-[75vh]"
+              ? "fixed inset-0 z-50 w-screen h-screen bg-black rounded-none border-none" 
+              : "relative w-full aspect-[4/3] rounded-2xl md:aspect-auto md:h-[75vh] border border-white/5 app-panel shadow-xl"
           }`}
         >
           {isFullscreen && (

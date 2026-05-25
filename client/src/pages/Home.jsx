@@ -488,53 +488,112 @@ export default function Home() {
                   {category}
                 </h2>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {groupedContent[category].map((item) => (
-                            <Link
-                              key={`${item.contentType}-${item._id}`}
-                              to={item.href}
-                              className="group"
-                            >
-                              <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-white/5 app-panel aspect-video shadow-md hover:shadow-2xl dark:shadow-black/50 transition-all duration-300 transform hover:-translate-y-1 hover:border-red-500/30">
-                                {/* Video Thumbnail */}
-                                <img
-                                  src={item.thumbnail}
-                                  alt={item.title}
-                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                />
+                {category === "PDFs" ? (
+                  <div className="flex flex-col gap-3">
+                    {groupedContent[category].map((item) => (
+                      <Link
+                        key={`${item.contentType}-${item._id}`}
+                        to={item.href}
+                        className="group block"
+                      >
+                        <div className="flex items-center gap-4 rounded-xl border border-slate-200 dark:border-white/5 app-panel p-3 shadow-md hover:shadow-xl dark:shadow-black/50 transition-all duration-300 hover:border-red-500/30 hover:bg-slate-900/40">
+                          {/* Thumbnail */}
+                          <div className="relative h-14 w-20 sm:h-16 sm:w-24 shrink-0 overflow-hidden rounded-lg">
+                            <img
+                              src={item.thumbnail}
+                              alt={item.title}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          </div>
 
-                                {/* Video Type Badge */}
-                                <span
-                                  className={`absolute top-3 right-3 z-10 rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white shadow-sm ${
-                                    item.contentType === "youtube"
-                                      ? "bg-red-600/70 border-red-500/30"
-                                      : item.contentType === "pdf"
-                                        ? "bg-teal-600/70 border-teal-500/30"
-                                        : "bg-blue-600/70 border-blue-500/30"
-                                  }`}
-                                >
-                                  {item.contentType === "youtube"
-                                    ? "YouTube"
+                          {/* Details */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm sm:text-base font-semibold text-white truncate group-hover:text-red-500 transition-colors">
+                                {item.title}
+                              </h3>
+                              <span
+                                className={`rounded px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white shadow-sm shrink-0 ${
+                                  item.contentType === "youtube"
+                                    ? "bg-red-600/70 border-red-500/30"
                                     : item.contentType === "pdf"
-                                      ? "PDF"
-                                      : item.subheading}
-                                </span>
+                                      ? "bg-teal-600/70 border-teal-500/30"
+                                      : "bg-blue-600/70 border-blue-500/30"
+                                }`}
+                              >
+                                {item.contentType === "youtube"
+                                  ? "YouTube"
+                                  : item.contentType === "pdf"
+                                    ? "PDF"
+                                    : item.subheading}
+                              </span>
+                            </div>
+                            {item.description && (
+                              <p className="mt-1 text-xs text-slate-400 dark:text-slate-400 line-clamp-1">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
 
-                                {/* Hover Info Overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                  <h4 className="text-sm font-extrabold text-white leading-tight transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
-                                    {item.title}
-                                  </h4>
-                                  {item.description && (
-                                    <p className="mt-1 text-[11px] text-white/70 line-clamp-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75">
-                                      {item.description}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </Link>
-                  ))}
-                </div>
+                          {/* Arrow Icon */}
+                          <div className="text-slate-500 group-hover:text-red-500 transition-colors pr-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:translate-x-1 transition-transform">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            </svg>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {groupedContent[category].map((item) => (
+                      <Link
+                        key={`${item.contentType}-${item._id}`}
+                        to={item.href}
+                        className="group"
+                      >
+                        <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-white/5 app-panel aspect-video shadow-md hover:shadow-2xl dark:shadow-black/50 transition-all duration-300 transform hover:-translate-y-1 hover:border-red-500/30">
+                          {/* Video Thumbnail */}
+                          <img
+                            src={item.thumbnail}
+                            alt={item.title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+
+                          {/* Video Type Badge */}
+                          <span
+                            className={`absolute top-3 right-3 z-10 rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white shadow-sm ${
+                              item.contentType === "youtube"
+                                ? "bg-red-600/70 border-red-500/30"
+                                : item.contentType === "pdf"
+                                  ? "bg-teal-600/70 border-teal-500/30"
+                                  : "bg-blue-600/70 border-blue-500/30"
+                            }`}
+                          >
+                            {item.contentType === "youtube"
+                              ? "YouTube"
+                              : item.contentType === "pdf"
+                                ? "PDF"
+                                : item.subheading}
+                          </span>
+
+                          {/* Hover Info Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                            <h4 className="text-sm font-extrabold text-white leading-tight transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
+                              {item.title}
+                            </h4>
+                            {item.description && (
+                              <p className="mt-1 text-[11px] text-white/70 line-clamp-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </section>
             )
           )}
