@@ -10,6 +10,7 @@ import ThreeBackground from "../components/ThreeBackground";
 
 import API from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useSiteGate } from "../context/SiteGateContext";
 
 const getErrorMessage = (error) => {
   return (
@@ -181,7 +182,9 @@ export default function Admin() {
   const [youtubePage, setYoutubePage] = useState(1);
 
   // ── Site Gate state ──
+  const { refreshSettings } = useSiteGate();
   const [gateEnabled, setGateEnabled] = useState(false);
+  const [threeJsBackgroundEnabled, setThreeJsBackgroundEnabled] = useState(true);
   const [gateHasPassword, setGateHasPassword] = useState(false);
   const [newGatePassword, setNewGatePassword] = useState("");
   const [confirmGatePassword, setConfirmGatePassword] = useState("");
@@ -249,6 +252,7 @@ export default function Admin() {
       const { data } = await API.get("/auth/site-gate/settings");
       setGateEnabled(data.gateEnabled);
       setGateHasPassword(data.hasPassword);
+      setThreeJsBackgroundEnabled(data.threeJsBackgroundEnabled !== false);
     } catch {
       // silently ignore
     } finally {
@@ -1618,6 +1622,7 @@ export default function Admin() {
                         const { data } = await API.put("/auth/site-gate", { enabled: !gateEnabled });
                         setGateEnabled(data.gateEnabled);
                         setGateMsg(data.gateEnabled ? "Gate enabled." : "Gate disabled.");
+                        refreshSettings();
                       } catch (err) {
                         setGateError(getErrorMessage(err));
                       }
@@ -1631,6 +1636,48 @@ export default function Admin() {
                     <span
                       className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ease-in-out mt-0.5 ${
                         gateEnabled ? "translate-x-5" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="h-px bg-slate-200 dark:bg-white/10" />
+
+                {/* Three.js Background toggle */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-sm">Three.js Particle Animation</p>
+                    <p className="text-xs app-muted mt-0.5">
+                      {threeJsBackgroundEnabled
+                        ? "✨ 3D particle packet flows are enabled"
+                        : "🔌 3D background is disabled (reduces CPU/GPU load)"}
+                    </p>
+                  </div>
+                  {/* Toggle */}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setGateError(""); setGateMsg("");
+                        const { data } = await API.put("/auth/site-gate", {
+                          threeJsBackgroundEnabled: !threeJsBackgroundEnabled
+                        });
+                        setThreeJsBackgroundEnabled(data.threeJsBackgroundEnabled);
+                        setGateMsg(data.threeJsBackgroundEnabled ? "Three.js background enabled." : "Three.js background disabled.");
+                        refreshSettings();
+                      } catch (err) {
+                        setGateError(getErrorMessage(err));
+                      }
+                    }}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none ${
+                      threeJsBackgroundEnabled
+                        ? "bg-red-500 border-red-500"
+                        : "bg-slate-300 dark:bg-slate-600 border-transparent"
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ease-in-out mt-0.5 ${
+                        threeJsBackgroundEnabled ? "translate-x-5" : "translate-x-0.5"
                       }`}
                     />
                   </button>
@@ -1696,6 +1743,7 @@ export default function Admin() {
                           setNewGatePassword("");
                           setConfirmGatePassword("");
                           setGateMsg("Access code saved successfully!");
+                          refreshSettings();
                         } catch (err) {
                           setGateError(getErrorMessage(err));
                         } finally {

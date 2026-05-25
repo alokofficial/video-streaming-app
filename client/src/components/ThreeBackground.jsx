@@ -1,12 +1,18 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { useTheme } from "../context/ThemeContext";
+import { useSiteGate } from "../context/SiteGateContext";
 
 export default function ThreeBackground() {
   const mountRef = useRef(null);
   const { isDarkMode } = useTheme();
+  const { threeJsBackgroundEnabled } = useSiteGate();
 
   useEffect(() => {
+    if (!threeJsBackgroundEnabled) {
+      return;
+    }
+
     const currentMount = mountRef.current;
     if (!currentMount) return;
 
@@ -246,7 +252,11 @@ export default function ThreeBackground() {
 
       renderer.dispose();
     };
-  }, [isDarkMode]);
+  }, [isDarkMode, threeJsBackgroundEnabled]);
+
+  if (!threeJsBackgroundEnabled) {
+    return null;
+  }
 
   return <div ref={mountRef} className="three-background fixed top-0 left-0 w-full h-full -z-10 pointer-events-none" />;
 }

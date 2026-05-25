@@ -13,32 +13,34 @@ const STORAGE_KEY = "siteUnlocked";
 
 export const SiteGateProvider = ({ children }) => {
   const [gateEnabled, setGateEnabled] = useState(false);
+  const [threeJsBackgroundEnabled, setThreeJsBackgroundEnabled] = useState(true);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const checkGate = async () => {
-      try {
-        const { data } = await API.get("/auth/site-gate");
-        setGateEnabled(data.gateEnabled);
+  const checkGate = async () => {
+    try {
+      const { data } = await API.get("/auth/site-gate");
+      setGateEnabled(data.gateEnabled);
+      setThreeJsBackgroundEnabled(data.threeJsBackgroundEnabled !== false);
 
-        if (!data.gateEnabled) {
-          // Gate is off — always unlocked
-          setIsUnlocked(true);
-        } else {
-          // Gate is on — check session storage
-          const storedUnlocked = sessionStorage.getItem(STORAGE_KEY) === "true";
-          setIsUnlocked(storedUnlocked);
-        }
-      } catch {
-        // If the check fails, don't block the user
-        setGateEnabled(false);
+      if (!data.gateEnabled) {
+        // Gate is off — always unlocked
         setIsUnlocked(true);
-      } finally {
-        setIsLoading(false);
+      } else {
+        // Gate is on — check session storage
+        const storedUnlocked = sessionStorage.getItem(STORAGE_KEY) === "true";
+        setIsUnlocked(storedUnlocked);
       }
-    };
+    } catch {
+      // If the check fails, don't block the user
+      setGateEnabled(false);
+      setIsUnlocked(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     checkGate();
   }, []);
 
@@ -48,8 +50,15 @@ export const SiteGateProvider = ({ children }) => {
   };
 
   const value = useMemo(
-    () => ({ gateEnabled, isUnlocked, isLoading, unlock }),
-    [gateEnabled, isUnlocked, isLoading]
+    () => ({
+      gateEnabled,
+      threeJsBackgroundEnabled,
+      isUnlocked,
+      isLoading,
+      unlock,
+      refreshSettings: checkGate,
+    }),
+    [gateEnabled, threeJsBackgroundEnabled, isUnlocked, isLoading]
   );
 
   return (

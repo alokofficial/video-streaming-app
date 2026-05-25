@@ -14,6 +14,10 @@ const siteSettingSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    threeJsBackgroundEnabled: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     _id: false,

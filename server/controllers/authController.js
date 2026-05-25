@@ -439,6 +439,7 @@ export const getSiteGateStatus = async (req, res) => {
     const settings = await getSettings();
     res.json({
       gateEnabled: settings.gateEnabled && !!settings.gatePasswordHash,
+      threeJsBackgroundEnabled: settings.threeJsBackgroundEnabled !== false,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -477,6 +478,7 @@ export const getSiteGateSettings = async (req, res) => {
     res.json({
       gateEnabled: settings.gateEnabled,
       hasPassword: !!settings.gatePasswordHash,
+      threeJsBackgroundEnabled: settings.threeJsBackgroundEnabled !== false,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -486,12 +488,16 @@ export const getSiteGateSettings = async (req, res) => {
 // ADMIN — set/update gate (toggle, change password)
 export const setSiteGate = async (req, res) => {
   try {
-    const { enabled, password } = req.body;
+    const { enabled, password, threeJsBackgroundEnabled } = req.body;
 
     const update = {};
 
     if (typeof enabled === "boolean") {
       update.gateEnabled = enabled;
+    }
+
+    if (typeof threeJsBackgroundEnabled === "boolean") {
+      update.threeJsBackgroundEnabled = threeJsBackgroundEnabled;
     }
 
     if (password && password.trim().length > 0) {
@@ -508,9 +514,10 @@ export const setSiteGate = async (req, res) => {
     );
 
     res.json({
-      message: "Site gate settings updated",
+      message: "Site settings updated",
       gateEnabled: settings.gateEnabled,
       hasPassword: !!settings.gatePasswordHash,
+      threeJsBackgroundEnabled: settings.threeJsBackgroundEnabled !== false,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
