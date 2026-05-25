@@ -1,5 +1,7 @@
 import User from "../models/User.js";
 import Video from "../models/Video.js";
+import YoutubeVideo from "../models/YoutubeVideo.js";
+import Document from "../models/Document.js";
 import SiteSetting from "../models/SiteSetting.js";
 import Log from "../models/Log.js";
 import bcrypt from "bcryptjs";
@@ -155,16 +157,52 @@ export const getUsers = async (req, res) => {
       "allowedEmails"
     );
 
+    const youtubeVideos = await YoutubeVideo.find().select(
+      "allowedEmails"
+    );
+
+    const documents = await Document.find().select(
+      "allowedEmails"
+    );
+
     const totalVideos = videos.length;
+    const totalYoutubeVideos = youtubeVideos.length;
+    const totalDocuments = documents.length;
 
     const usersWithAccessCount = users.map((user) => {
       const email = user.email.toLowerCase();
-      const accessibleVideos =
+      const accessibleDriveVideos =
         user.role === "admin"
           ? totalVideos
           : videos.filter((video) => {
               const allowedEmails =
                 video.allowedEmails || [];
+
+              return (
+                allowedEmails.length === 0 ||
+                allowedEmails.includes(email)
+              );
+            }).length;
+
+      const accessibleYoutubeVideos =
+        user.role === "admin"
+          ? totalYoutubeVideos
+          : youtubeVideos.filter((video) => {
+              const allowedEmails =
+                video.allowedEmails || [];
+
+              return (
+                allowedEmails.length === 0 ||
+                allowedEmails.includes(email)
+              );
+            }).length;
+
+      const accessibleDocuments =
+        user.role === "admin"
+          ? totalDocuments
+          : documents.filter((doc) => {
+              const allowedEmails =
+                doc.allowedEmails || [];
 
               return (
                 allowedEmails.length === 0 ||
@@ -180,7 +218,9 @@ export const getUsers = async (req, res) => {
         avatar: user.avatar || "",
         createdAt: user.createdAt,
         lastLoginAt: user.lastLoginAt,
-        accessibleVideos,
+        accessibleDriveVideos,
+        accessibleYoutubeVideos,
+        accessibleDocuments,
       };
     });
 
@@ -254,7 +294,9 @@ export const createUser = async (req, res) => {
         avatar: user.avatar || "",
         createdAt: user.createdAt,
         lastLoginAt: user.lastLoginAt,
-        accessibleVideos: 0,
+        accessibleDriveVideos: 0,
+        accessibleYoutubeVideos: 0,
+        accessibleDocuments: 0,
       },
     });
   } catch (error) {

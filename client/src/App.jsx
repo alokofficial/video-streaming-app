@@ -5,6 +5,7 @@ import Register from "./pages/Register";
 import Home from "./pages/Home";
 import VideoPlayer from "./pages/VideoPlayer";
 import YoutubePlayer from "./pages/YoutubePlayer";
+import PdfViewer from "./pages/PdfViewer";
 import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
 import SiteGate from "./pages/SiteGate";
@@ -50,6 +51,16 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <VideoPlayer />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Document View Route */}
+            <Route
+              path="/document/:fileId"
+              element={
+                <ProtectedRoute>
+                  <PdfViewer />
                 </ProtectedRoute>
               }
             />

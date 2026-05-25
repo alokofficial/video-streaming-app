@@ -20,6 +20,8 @@ const DEFAULT_DRIVE_THUMBNAIL =
   "https://imgs.search.brave.com/aJbpA-62AKAWzzdV3gLEKFsRmBL5DyMouzgU0y1RQO0/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMjIz/MzAxMjU5Ny9waG90/by9iZXJsaW4tZ2Vy/bWFueS1pbi10aGlz/LXBob3RvLWlsbHVz/dHJhdGlvbi10aGUt/Z29vZ2xlLWRyaXZl/LWFwcC1pcy1kaXNw/bGF5ZWQtb24tdGhl/LXNjcmVlbi1vZi5q/cGc_cz02MTJ4NjEy/Jnc9MCZrPTIwJmM9/aERiNVVtOHlRM0Vs/VkJrMFU5a04zZ3dr/QS1GNnNnS3RON3Uw/ZVRpdGV5WT0";
 const DEFAULT_YOUTUBE_THUMBNAIL =
   "https://imgs.search.brave.com/vnc7fAs0ZfAoGWxprz3aDlu0OOjyvDvGBYmM32_AynA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pbWFn/ZXMudW5zcGxhc2gu/Y29tL3Bob3RvLTE2/MTExNjI2MTY0NzUt/NDZiNjM1Y2I2ODY4/P2ZtPWpwZyZxPTYw/Jnc9MzAwMCZhdXRv/PWZvcm1hdCZmaXQ9/Y3JvcCZpeGxpYj1y/Yi00LjEuMCZpeGlk/PU0zd3hNakEzZkRC/OE1IeHpaV0Z5WTJo/OE1ueDhlVzkxZEhW/aVpTVXlNR3h2WjI5/OFpXNThNSHg4TUh4/OGZEQT0";
+const DEFAULT_PDF_THUMBNAIL =
+  "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?q=80&w=300&auto=format&fit=crop";
 const HEADING_ORDER_STORAGE_KEY =
   "homepageHeadingOrder";
 const getDateValue = (value) => {
@@ -35,6 +37,7 @@ export default function Home() {
   const [videos, setVideos] = useState([]);
   const [youtubeVideos, setYoutubeVideos] =
     useState([]);
+  const [documents, setDocuments] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] =
     useState("");
@@ -88,8 +91,11 @@ export default function Home() {
   const visibleYoutubeVideos = isAdmin
     ? youtubeVideos.filter(canSelectedUserView)
     : youtubeVideos;
+  const visibleDocuments = isAdmin
+    ? documents.filter(canSelectedUserView)
+    : documents;
   const visibleContentCount =
-    visibleVideos.length + visibleYoutubeVideos.length;
+    visibleVideos.length + visibleYoutubeVideos.length + visibleDocuments.length;
 
   const contentItems = [
     ...visibleVideos.map((video) => ({
@@ -112,6 +118,15 @@ export default function Home() {
       thumbnail:
         video.thumbnail || DEFAULT_YOUTUBE_THUMBNAIL,
       description: "Protected video",
+    })),
+    ...visibleDocuments.map((doc) => ({
+      ...doc,
+      contentType: "pdf",
+      category: doc.category || "PDFs",
+      subheading: doc.subheading || "PDF",
+      href: `/document/${doc.driveFileId}`,
+      thumbnail:
+        doc.thumbnail || DEFAULT_PDF_THUMBNAIL,
     })),
   ];
 
@@ -247,10 +262,12 @@ export default function Home() {
       const [
         { data: driveVideos },
         { data: protectedYoutubeVideos },
+        { data: pdfDocuments },
         usersResponse,
       ] = await Promise.all([
         API.get("/videos"),
         API.get("/youtube"),
+        API.get("/documents"),
         isAdmin
           ? API.get("/auth/users")
           : Promise.resolve({ data: [] }),
@@ -258,6 +275,7 @@ export default function Home() {
 
       setVideos(driveVideos);
       setYoutubeVideos(protectedYoutubeVideos);
+      setDocuments(pdfDocuments);
       setUsers(usersResponse.data);
     } catch (error) {
       console.log(error);
@@ -490,12 +508,16 @@ export default function Home() {
                                   className={`absolute top-3 right-3 z-10 rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white shadow-sm ${
                                     item.contentType === "youtube"
                                       ? "bg-red-600/70 border-red-500/30"
-                                      : "bg-blue-600/70 border-blue-500/30"
+                                      : item.contentType === "pdf"
+                                        ? "bg-teal-600/70 border-teal-500/30"
+                                        : "bg-blue-600/70 border-blue-500/30"
                                   }`}
                                 >
                                   {item.contentType === "youtube"
                                     ? "YouTube"
-                                    : item.subheading}
+                                    : item.contentType === "pdf"
+                                      ? "PDF"
+                                      : item.subheading}
                                 </span>
 
                                 {/* Hover Info Overlay */}

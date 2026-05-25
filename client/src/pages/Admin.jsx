@@ -40,6 +40,8 @@ const getActionBadgeClass = (action) => {
       return "bg-sky-500/10 text-sky-500 border-sky-500/20 dark:bg-sky-500/5";
     case "WATCH_YOUTUBE_VIDEO":
       return "bg-indigo-500/10 text-indigo-500 border-indigo-500/20 dark:bg-indigo-500/5";
+    case "VIEW_DRIVE_DOCUMENT":
+      return "bg-teal-500/10 text-teal-500 border-teal-500/20 dark:bg-teal-500/5";
     case "CHANGE_GATE_SETTINGS":
       return "bg-amber-500/10 text-amber-500 border-amber-500/20 dark:bg-amber-500/5";
     case "CHANGE_PASSWORD":
@@ -70,6 +72,8 @@ const DEFAULT_DRIVE_THUMBNAIL =
   "https://imgs.search.brave.com/aJbpA-62AKAWzzdV3gLEKFsRmBL5DyMouzgU0y1RQO0/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMjIz/MzAxMjU5Ny9waG90/by9iZXJsaW4tZ2Vy/bWFueS1pbi10aGlz/LXBob3RvLWlsbHVz/dHJhdGlvbi10aGUt/Z29vZ2xlLWRyaXZl/LWFwcC1pcy1kaXNw/bGF5ZWQtb24tdGhl/LXNjcmVlbi1vZi5q/cGc_cz02MTJ4NjEy/Jnc9MCZrPTIwJmM9/aERiNVVtOHlRM0Vs/VkJrMFU5a04zZ3dr/QS1GNnNnS3RON3Uw/ZVRpdGV5WT0";
 const DEFAULT_YOUTUBE_THUMBNAIL =
   "https://imgs.search.brave.com/vnc7fAs0ZfAoGWxprz3aDlu0OOjyvDvGBYmM32_AynA/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9pbWFn/ZXMudW5zcGxhc2gu/Y29tL3Bob3RvLTE2/MTExNjI2MTY0NzUt/NDZiNjM1Y2I2ODY4/P2ZtPWpwZyZxPTYw/Jnc9MzAwMCZhdXRv/PWZvcm1hdCZmaXQ9/Y3JvcCZpeGxpYj1y/Yi00LjEuMCZpeGlk/PU0zd3hNakEzZkRC/OE1IeHpaV0Z5WTJo/OE1ueDhlVzkxZEhW/aVpTVXlNR3h2WjI5/OFpXNThNSHg4TUh4/OGZEQT0";
+const DEFAULT_PDF_THUMBNAIL =
+  "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?q=80&w=300&auto=format&fit=crop";
 
 const getUniqueHeadings = (items) => {
   return [
@@ -99,6 +103,8 @@ export default function Admin() {
     useState([]);
   const [youtubeVideos, setYoutubeVideos] =
     useState([]);
+  const [documents, setDocuments] =
+    useState([]);
 
   const [isLoadingVideos, setIsLoadingVideos] =
     useState(true);
@@ -106,10 +112,16 @@ export default function Admin() {
     isLoadingYoutubeVideos,
     setIsLoadingYoutubeVideos,
   ] = useState(true);
+  const [
+    isLoadingDocuments,
+    setIsLoadingDocuments,
+  ] = useState(true);
 
   const [videosError, setVideosError] =
     useState("");
   const [youtubeVideosError, setYoutubeVideosError] =
+    useState("");
+  const [documentsError, setDocumentsError] =
     useState("");
 
   const [users, setUsers] =
@@ -126,6 +138,10 @@ export default function Admin() {
   const [
     editingYoutubeVideoId,
     setEditingYoutubeVideoId,
+  ] = useState(null);
+  const [
+    editingDocumentId,
+    setEditingDocumentId,
   ] = useState(null);
 
   const [newUserName, setNewUserName] =
@@ -194,6 +210,17 @@ export default function Admin() {
     setYoutubeAllowedEmails,
   ] = useState("");
 
+  const [docTitle, setDocTitle] = useState("");
+  const [docDescription, setDocDescription] = useState("");
+  const [docCategory, setDocCategory] = useState("PDFs");
+  const [docCategoryInputMode, setDocCategoryInputMode] = useState("existing");
+  const [docSubheading, setDocSubheading] = useState("PDF");
+  const [docDriveFileId, setDocDriveFileId] = useState("");
+  const [docThumbnail, setDocThumbnail] = useState(DEFAULT_PDF_THUMBNAIL);
+  const [docAllowedEmails, setDocAllowedEmails] = useState("");
+  const [docSearchTerm, setDocSearchTerm] = useState("");
+  const [docPage, setDocPage] = useState(1);
+
   const [activeTab, setActiveTab] =
     useState("content");
 
@@ -230,6 +257,7 @@ export default function Admin() {
   const headingOptions = getUniqueHeadings([
     ...videos,
     ...youtubeVideos,
+    ...documents,
   ]);
 
   const fetchVideos = useCallback(async () => {
@@ -261,6 +289,22 @@ export default function Admin() {
       setYoutubeVideosError(getErrorMessage(error));
     } finally {
       setIsLoadingYoutubeVideos(false);
+    }
+  }, []);
+
+  const fetchDocuments = useCallback(async () => {
+    try {
+      setIsLoadingDocuments(true);
+      setDocumentsError("");
+
+      const { data } = await API.get("/documents");
+
+      setDocuments(data);
+    } catch (error) {
+      console.log(error);
+      setDocumentsError(getErrorMessage(error));
+    } finally {
+      setIsLoadingDocuments(false);
     }
   }, []);
 
@@ -350,9 +394,10 @@ export default function Admin() {
   useEffect(() => {
     fetchVideos();
     fetchYoutubeVideos();
+    fetchDocuments();
     fetchUsers();
     fetchGateSettings();
-  }, [fetchVideos, fetchYoutubeVideos, fetchUsers, fetchGateSettings]);
+  }, [fetchVideos, fetchYoutubeVideos, fetchDocuments, fetchUsers, fetchGateSettings]);
 
   const resetForm = () => {
     setTitle(emptyForm.title);
@@ -684,6 +729,124 @@ export default function Admin() {
     }
   };
 
+  const resetDocForm = () => {
+    setDocTitle("");
+    setDocDescription("");
+    setDocCategory("PDFs");
+    setDocCategoryInputMode("existing");
+    setDocSubheading("PDF");
+    setDocDriveFileId("");
+    setDocThumbnail(DEFAULT_PDF_THUMBNAIL);
+    setDocAllowedEmails("");
+    setEditingDocumentId(null);
+  };
+
+  const parseDocAllowedEmails = () => {
+    return docAllowedEmails
+      .split(/[,\n]/)
+      .map((email) =>
+        email.trim().toLowerCase()
+      )
+      .filter(Boolean);
+  };
+
+  const handleDocSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const payload = {
+        title: docTitle,
+        description: docDescription,
+        category: docCategory || "PDFs",
+        subheading: docSubheading || "PDF",
+        driveFileId: docDriveFileId,
+        thumbnail: docThumbnail || DEFAULT_PDF_THUMBNAIL,
+        allowedEmails: parseDocAllowedEmails(),
+      };
+
+      if (editingDocumentId) {
+        await API.put(
+          `/documents/${editingDocumentId}`,
+          payload
+        );
+
+        alert("PDF document updated");
+      } else {
+        await API.post("/documents", payload);
+
+        alert("PDF document added");
+      }
+
+      resetDocForm();
+      fetchDocuments();
+      setActiveTab("documentsList");
+    } catch (error) {
+      console.log(error);
+      alert(getErrorMessage(error));
+    }
+  };
+
+  const handleDocEdit = (doc) => {
+    setActiveTab("docForm");
+    setEditingDocumentId(doc._id);
+    setDocTitle(doc.title || "");
+    setDocDescription(doc.description || "");
+    setDocCategory(doc.category || "PDFs");
+    setDocCategoryInputMode(
+      doc.category &&
+        !headingOptions.includes(doc.category)
+        ? "other"
+        : "existing"
+    );
+    setDocSubheading(doc.subheading || "PDF");
+    setDocDriveFileId(doc.driveFileId || "");
+    setDocThumbnail(
+      doc.thumbnail || DEFAULT_PDF_THUMBNAIL
+    );
+    setDocAllowedEmails(
+      (doc.allowedEmails || []).join(", ")
+    );
+  };
+
+  const handleDocDelete = async (docId) => {
+    const confirmed = window.confirm(
+      "Delete this PDF document?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await API.delete(`/documents/${docId}`);
+
+      if (editingDocumentId === docId) {
+        resetDocForm();
+      }
+
+      fetchDocuments();
+    } catch (error) {
+      console.log(error);
+      alert(getErrorMessage(error));
+    }
+  };
+
+  const filteredDocuments = documents.filter((d) => 
+    d.title?.toLowerCase().includes(docSearchTerm.toLowerCase()) || 
+    d.description?.toLowerCase().includes(docSearchTerm.toLowerCase()) ||
+    d.category?.toLowerCase().includes(docSearchTerm.toLowerCase()) ||
+    d.allowedEmails?.some((email) =>
+      email.toLowerCase().includes(docSearchTerm.toLowerCase())
+    )
+  );
+  const totalDocPages = Math.ceil(filteredDocuments.length / VIDEOS_PER_PAGE) || 1;
+  const displayedDocuments = filteredDocuments.slice((docPage - 1) * VIDEOS_PER_PAGE, docPage * VIDEOS_PER_PAGE);
+
+  const handleDocSearch = (e) => {
+    setDocSearchTerm(e.target.value);
+    setDocPage(1);
+  };
+
   const filteredUsers = users.filter((u) => 
     u.name?.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
     u.email?.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
@@ -762,6 +925,14 @@ export default function Admin() {
             Manage YouTube
           </button>
           <button
+            onClick={() => { setActiveTab("documentsList"); setDocPage(1); }}
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
+              activeTab === "documentsList" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
+            }`}
+          >
+            Manage PDFs
+          </button>
+          <button
             onClick={() => { setActiveTab("videoForm"); resetForm(); }}
             className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
               activeTab === "videoForm" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
@@ -778,6 +949,14 @@ export default function Admin() {
             {editingYoutubeVideoId
               ? "Edit YouTube"
               : "Add YouTube"}
+          </button>
+          <button
+            onClick={() => { setActiveTab("docForm"); resetDocForm(); }}
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
+              activeTab === "docForm" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
+            }`}
+          >
+            {editingDocumentId ? "Edit PDF" : "Add PDF"}
           </button>
           <button
             onClick={() => setActiveTab("settings")}
@@ -852,7 +1031,13 @@ export default function Admin() {
                     <th className="p-4">Email</th>
                     <th className="p-4">Role</th>
                     <th className="p-4">
-                      Accessible Videos
+                      Drive Videos
+                    </th>
+                    <th className="p-4">
+                      YouTube Videos
+                    </th>
+                    <th className="p-4">
+                      Accessible PDFs
                     </th>
                     <th className="p-4">Last Login</th>
                     <th className="p-4">Joined</th>
@@ -896,7 +1081,13 @@ export default function Admin() {
                         {user.role}
                       </td>
                       <td className="p-4 app-muted">
-                        {user.accessibleVideos}
+                        {user.accessibleDriveVideos || 0}
+                      </td>
+                      <td className="p-4 app-muted">
+                        {user.accessibleYoutubeVideos || 0}
+                      </td>
+                      <td className="p-4 app-muted">
+                        {user.accessibleDocuments || 0}
                       </td>
                       <td className="p-4 app-muted">
                         {formatDate(user.lastLoginAt)}
@@ -1292,6 +1483,146 @@ export default function Admin() {
           </div>
         )}
 
+        {activeTab === "documentsList" && (
+          <div className="mb-8">
+            <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-2xl font-bold sm:text-3xl">
+                Manage PDFs / Documents
+              </h2>
+
+              <button
+                type="button"
+                onClick={fetchDocuments}
+                className="w-full rounded app-soft-surface px-4 py-2 font-semibold sm:w-auto"
+              >
+                Refresh
+              </button>
+            </div>
+
+            {isLoadingDocuments && (
+              <p className="app-muted">
+                Loading PDF documents...
+              </p>
+            )}
+
+            {documentsError && (
+              <p className="rounded bg-red-950 p-3 text-red-200">
+                {documentsError}
+              </p>
+            )}
+
+            {!isLoadingDocuments &&
+              !documentsError &&
+              documents.length === 0 && (
+                <p className="app-muted">
+                  No PDF documents added yet.
+                </p>
+              )}
+
+            {documents.length > 0 && (
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Search PDFs by title, category, subheading, or email..."
+                  className="w-full max-w-md rounded app-soft-surface p-3 text-sm focus:border-red-500 focus:outline-none"
+                  value={docSearchTerm}
+                  onChange={handleDocSearch}
+                />
+              </div>
+            )}
+
+            <div className="grid gap-4">
+              {displayedDocuments.map((doc) => (
+                <div
+                  key={doc._id}
+                  className="grid gap-4 rounded-xl app-panel p-4 md:grid-cols-[140px_1fr_180px]"
+                >
+                  <img
+                    src={
+                      doc.thumbnail ||
+                      DEFAULT_PDF_THUMBNAIL
+                    }
+                    alt={doc.title}
+                    className="aspect-video w-full rounded object-cover md:h-[90px] md:w-[140px]"
+                  />
+
+                  <div>
+                    <h3 className="text-lg font-semibold sm:text-xl">
+                      {doc.title}
+                    </h3>
+
+                    <p className="mt-2 text-sm text-gray-500">
+                      Type: Google Drive PDF
+                    </p>
+
+                    <p className="mt-2 text-sm text-gray-500">
+                      {doc.category || "PDFs"} /{" "}
+                      {doc.subheading || "PDF"}
+                    </p>
+
+                    <p className="mt-2 break-all text-sm text-gray-500">
+                      Drive ID: {doc.driveFileId}
+                    </p>
+
+                    <p className="mt-2 break-all text-sm text-gray-500">
+                      Visible to:{" "}
+                      {doc.allowedEmails?.length
+                        ? doc.allowedEmails.join(", ")
+                        : "All logged-in users"}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-1 md:content-center">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleDocEdit(doc)
+                      }
+                      className="rounded-xl btn-primary-blue px-4 py-3 font-bold text-sm"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleDocDelete(doc._id)
+                      }
+                      className="rounded-xl btn-primary-red px-4 py-3 font-bold text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {documents.length > 0 && (
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-sm app-muted">
+                  Showing {filteredDocuments.length === 0 ? 0 : ((docPage - 1) * VIDEOS_PER_PAGE) + 1} to {Math.min(docPage * VIDEOS_PER_PAGE, filteredDocuments.length)} of {filteredDocuments.length} PDF documents
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    disabled={docPage === 1}
+                    onClick={() => setDocPage((p) => p - 1)}
+                    className="rounded app-soft-surface px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                  >
+                    Prev
+                  </button>
+                  <button
+                    disabled={docPage === totalDocPages}
+                    onClick={() => setDocPage((p) => p + 1)}
+                    className="rounded app-soft-surface px-3 py-1 font-semibold disabled:opacity-50 hover:bg-gray-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === "videoForm" && (
         <form
           onSubmit={handleSubmit}
@@ -1672,6 +2003,208 @@ export default function Admin() {
                 onClick={() => {
                   resetYoutubeForm();
                   setActiveTab("youtube");
+                }}
+                className="mt-3 w-full rounded-xl btn-secondary p-3.5 font-bold tracking-wide"
+              >
+                Cancel Edit
+              </button>
+            )}
+          </form>
+        )}
+
+        {activeTab === "docForm" && (
+          <form
+            onSubmit={handleDocSubmit}
+            className="mx-auto max-w-xl rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 sm:p-8 shadow-2xl backdrop-blur-lg bg-white/80 dark:bg-black/30"
+          >
+            <h1 className="mb-6 text-3xl font-extrabold tracking-tight">
+              {editingDocumentId
+                ? "Edit PDF Document"
+                : "Add PDF Document"}
+            </h1>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                Document Title
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Course Syllabus"
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={docTitle}
+                onChange={(e) =>
+                  setDocTitle(e.target.value)
+                }
+              />
+              <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
+                {countLetters(docTitle)} /{" "}
+                {fieldLimits.title} characters
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                Description
+              </label>
+              <textarea
+                placeholder="Short description of the PDF"
+                rows="3"
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={docDescription}
+                onChange={(e) =>
+                  setDocDescription(e.target.value)
+                }
+              />
+              <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
+                {countLetters(docDescription)} /{" "}
+                {fieldLimits.description} characters
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                Google Drive PDF File ID
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. 1a2b3c4d5e6f..."
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={docDriveFileId}
+                onChange={(e) =>
+                  setDocDriveFileId(e.target.value)
+                }
+              />
+              <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
+                {countLetters(docDriveFileId)} /{" "}
+                {fieldLimits.driveFileId} characters
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                Category / Heading
+              </label>
+              <select
+                value={
+                  docCategoryInputMode === "other"
+                    ? HEADING_OTHER_VALUE
+                    : docCategory
+                }
+                onChange={(e) => {
+                  if (
+                    e.target.value ===
+                    HEADING_OTHER_VALUE
+                  ) {
+                    setDocCategoryInputMode(
+                      "other"
+                    );
+                    setDocCategory("");
+                    return;
+                  }
+
+                  setDocCategoryInputMode(
+                    "existing"
+                  );
+                  setDocCategory(e.target.value);
+                }}
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              >
+                <option value="PDFs">PDFs (Default)</option>
+                {headingOptions
+                  .filter((h) => h !== "PDFs")
+                  .map((heading) => (
+                    <option key={heading} value={heading}>
+                      {heading}
+                    </option>
+                  ))}
+                <option value={HEADING_OTHER_VALUE}>
+                  Other
+                </option>
+              </select>
+            </div>
+
+            {docCategoryInputMode === "other" && (
+              <div className="mb-4">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                  New Category Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Write new heading/category"
+                  className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                  value={docCategory}
+                  onChange={(e) =>
+                    setDocCategory(e.target.value)
+                  }
+                />
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                Subheading
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Module 1 Resource"
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={docSubheading}
+                onChange={(e) =>
+                  setDocSubheading(e.target.value)
+                }
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                Thumbnail URL (optional)
+              </label>
+              <input
+                type="text"
+                placeholder="Enter custom image URL"
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={docThumbnail}
+                onChange={(e) =>
+                  setDocThumbnail(e.target.value)
+                }
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
+                Visible To Email IDs (comma-separated)
+              </label>
+              <textarea
+                placeholder="e.g. user1@example.com, user2@example.com. Leave blank for public access."
+                rows="2"
+                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+                value={docAllowedEmails}
+                onChange={(e) =>
+                  setDocAllowedEmails(
+                    e.target.value
+                  )
+                }
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full rounded-xl btn-primary-red p-3.5 font-bold tracking-wide"
+            >
+              {editingDocumentId
+                ? "Save PDF Document"
+                : "Add PDF Document"}
+            </button>
+
+            {editingDocumentId && (
+              <button
+                type="button"
+                onClick={() => {
+                  resetDocForm();
+                  setActiveTab("documentsList");
                 }}
                 className="mt-3 w-full rounded-xl btn-secondary p-3.5 font-bold tracking-wide"
               >
