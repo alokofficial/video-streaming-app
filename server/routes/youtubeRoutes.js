@@ -3,9 +3,11 @@ import express from "express";
 import {
   getYoutubeVideos,
   addYoutubeVideo,
+  bulkAddYoutubeVideos,
   updateYoutubeVideo,
   deleteYoutubeVideo,
   embedYoutubeVideo,
+  exportYoutubeVideos,
 } from "../controllers/youtubeController.js";
 import {
   protect,
@@ -15,6 +17,20 @@ import {
 const router = express.Router();
 
 router.get("/", protect, getYoutubeVideos);
+
+router.get(
+  "/export",
+  protect,
+  authorizeRoles("admin"),
+  exportYoutubeVideos
+);
+
+router.post(
+  "/bulk",
+  protect,
+  authorizeRoles("admin"),
+  bulkAddYoutubeVideos
+);
 
 router.post(
   "/",

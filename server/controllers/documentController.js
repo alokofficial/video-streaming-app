@@ -192,6 +192,13 @@ export const addDocument = async (req, res) => {
       allowedEmails,
     } = req.body;
 
+    const existingDoc = await Document.findOne({ driveFileId });
+    if (existingDoc) {
+      return res.status(400).json({
+        message: `A PDF Document with Google Drive File ID '${driveFileId}' already exists.`,
+      });
+    }
+
     const doc = await Document.create({
       title,
       description,
@@ -223,6 +230,18 @@ export const updateDocument = async (req, res) => {
       thumbnail,
       allowedEmails,
     } = req.body;
+
+    if (driveFileId) {
+      const existingDoc = await Document.findOne({
+        driveFileId,
+        _id: { $ne: req.params.id },
+      });
+      if (existingDoc) {
+        return res.status(400).json({
+          message: `A PDF Document with Google Drive File ID '${driveFileId}' already exists.`,
+        });
+      }
+    }
 
     const doc = await Document.findByIdAndUpdate(
       req.params.id,
@@ -269,6 +288,112 @@ export const deleteDocument = async (req, res) => {
 
     res.json({
       message: "Document deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+
+// BULK ADD DOCUMENTS
+export const bulkAddDocuments = async (req, res) => {
+  try {
+    const { documents } = req.body;
+
+    if (!Array.isArray(documents) || documents.length === 0) {
+      return res.status(400).json({
+        message: "Payload 'documents' must be a non-empty array",
+      });
+    }
+
+    const existingDocs = await Document.find({}, "driveFileId");
+    const existingDriveIds = new Set(existingDocs.map((d) => d.driveFileId));
+    const processedDriveIds = new Set();
+
+    const processedDocuments = [];
+
+    for (const item of documents) {
+      const {
+        title,
+        description,
+        category,
+        subheading,
+        driveFileId,
+        thumbnail,
+        allowedEmails,
+      } = item;
+
+      // Validate required fields
+      if (!title || !String(title).trim()) {
+        return res.status(400).json({
+          message: "All documents must have a title",
+        });
+      }
+
+      if (!driveFileId || !String(driveFileId).trim()) {
+        return res.status(400).json({
+          message: `Document '${title}' must have a Google Drive File ID`,
+        });
+      }
+
+      const cleanDriveFileId = String(driveFileId).trim();
+
+      if (existingDriveIds.has(cleanDriveFileId)) {
+        return res.status(400).json({
+          message: `Document '${title}' cannot be imported because Google Drive File ID '${cleanDriveFileId}' already exists in the library.`,
+        });
+      }
+
+      if (processedDriveIds.has(cleanDriveFileId)) {
+        return res.status(400).json({
+          message: `Duplicate Google Drive PDF File ID '${cleanDriveFileId}' found in import spreadsheet for document '${title}'.`,
+        });
+      }
+
+      processedDriveIds.add(cleanDriveFileId);
+
+
+
+      if (description && String(description).trim().length > 150) {
+        return res.status(400).json({
+          message: `Document description for '${title}' exceeds maximum 150 letters allowed`,
+        });
+      }
+
+      if (String(driveFileId).trim().length > 100) {
+        return res.status(400).json({
+          message: `Google Drive PDF File ID for '${title}' exceeds maximum 100 letters allowed`,
+        });
+      }
+
+      processedDocuments.push({
+        title: String(title).trim(),
+        description: description ? String(description).trim() : "",
+        category: String(category || "PDFs").trim() || "PDFs",
+        subheading: String(subheading || "PDF").trim() || "PDF",
+        driveFileId: String(driveFileId).trim(),
+        thumbnail: thumbnail ? String(thumbnail).trim() : undefined,
+        allowedEmails: normalizeEmailList(allowedEmails),
+      });
+    }
+
+    const createdDocs = await Document.insertMany(processedDocuments);
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "BULK_IMPORT_DOCUMENTS",
+      details: `Bulk imported ${createdDocs.length} PDF documents`,
+      req,
+    });
+
+    res.status(201).json({
+      message: `Successfully imported ${createdDocs.length} PDF documents`,
+      documents: createdDocs,
     });
   } catch (error) {
     console.error(error);

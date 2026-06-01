@@ -66,7 +66,23 @@ export const addYoutubeVideo = async (req, res) => {
       return res.status(400).json({ message: "YouTube Video ID is required" });
     }
 
-    const encryptedVideoId = encrypt(videoId);
+    const cleanVideoId = String(videoId).trim();
+    const existingVideos = await YoutubeVideo.find({});
+    const isDuplicate = existingVideos.some((v) => {
+      try {
+        return decrypt(v.encryptedVideoId) === cleanVideoId;
+      } catch {
+        return false;
+      }
+    });
+
+    if (isDuplicate) {
+      return res.status(400).json({
+        message: `A YouTube video with ID '${cleanVideoId}' already exists.`,
+      });
+    }
+
+    const encryptedVideoId = encrypt(cleanVideoId);
 
     const video = await YoutubeVideo.create({
       title,
@@ -114,7 +130,22 @@ export const updateYoutubeVideo = async (req, res) => {
     };
 
     if (videoId) {
-      updateData.encryptedVideoId = encrypt(videoId);
+      const cleanVideoId = String(videoId).trim();
+      const existingVideos = await YoutubeVideo.find({ _id: { $ne: req.params.id } });
+      const isDuplicate = existingVideos.some((v) => {
+        try {
+          return decrypt(v.encryptedVideoId) === cleanVideoId;
+        } catch {
+          return false;
+        }
+      });
+
+      if (isDuplicate) {
+        return res.status(400).json({
+          message: `A YouTube video with ID '${cleanVideoId}' already exists.`,
+        });
+      }
+      updateData.encryptedVideoId = encrypt(cleanVideoId);
     }
 
     const video = await YoutubeVideo.findByIdAndUpdate(
@@ -197,5 +228,142 @@ export const embedYoutubeVideo = async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).send("Error embedding video");
+  }
+};
+
+
+// BULK ADD YOUTUBE VIDEOS
+export const bulkAddYoutubeVideos = async (req, res) => {
+  try {
+    const { videos } = req.body;
+
+    if (!Array.isArray(videos) || videos.length === 0) {
+      return res.status(400).json({
+        message: "Payload 'videos' must be a non-empty array",
+      });
+    }
+
+    const existingVideos = await YoutubeVideo.find({});
+    const existingVideoIds = new Set(
+      existingVideos.map((v) => {
+        try {
+          return decrypt(v.encryptedVideoId);
+        } catch {
+          return null;
+        }
+      }).filter(Boolean)
+    );
+    const processedVideoIds = new Set();
+
+    const processedVideos = [];
+
+    for (const item of videos) {
+      const {
+        title,
+        videoId,
+        category,
+        subheading,
+        thumbnail,
+        allowedEmails,
+      } = item;
+
+      // Validate required fields
+      if (!title || !String(title).trim()) {
+        return res.status(400).json({
+          message: "All videos must have a title",
+        });
+      }
+
+      if (!videoId || !String(videoId).trim()) {
+        return res.status(400).json({
+          message: `Video '${title}' must have a YouTube Video ID`,
+        });
+      }
+
+      const cleanVideoId = String(videoId).trim();
+
+      if (existingVideoIds.has(cleanVideoId)) {
+        return res.status(400).json({
+          message: `YouTube video '${title}' cannot be imported because Video ID '${cleanVideoId}' already exists in the library.`,
+        });
+      }
+
+      if (processedVideoIds.has(cleanVideoId)) {
+        return res.status(400).json({
+          message: `Duplicate YouTube Video ID '${cleanVideoId}' found in import spreadsheet for video '${title}'.`,
+        });
+      }
+
+      processedVideoIds.add(cleanVideoId);
+
+
+
+      const encryptedVideoId = encrypt(String(videoId).trim());
+
+      processedVideos.push({
+        title: String(title).trim(),
+        encryptedVideoId,
+        category: String(category || "YouTube").trim() || "YouTube",
+        subheading: String(subheading || "Protected YouTube Videos").trim() || "Protected YouTube Videos",
+        thumbnail: thumbnail ? String(thumbnail).trim() : undefined,
+        allowedEmails: normalizeEmailList(allowedEmails),
+      });
+    }
+
+    const createdVideos = await YoutubeVideo.insertMany(processedVideos);
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "BULK_IMPORT_YOUTUBE_VIDEOS",
+      details: `Bulk imported ${createdVideos.length} YouTube videos`,
+      req,
+    });
+
+    res.status(201).json({
+      message: `Successfully imported ${createdVideos.length} YouTube videos`,
+      videos: createdVideos.map((v) => ({ _id: v._id, title: v.title })),
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+
+// EXPORT YOUTUBE VIDEOS (ADMIN ONLY - WITH DECRYPTION)
+export const exportYoutubeVideos = async (req, res) => {
+  try {
+    const videos = await YoutubeVideo.find({}).sort({ createdAt: -1 });
+
+    const decryptedVideos = videos.map((video) => {
+      let videoId = "";
+      try {
+        videoId = decrypt(video.encryptedVideoId);
+      } catch (err) {
+        console.error("Decryption failed for video: ", video._id, err);
+      }
+
+      return {
+        _id: video._id,
+        title: video.title,
+        videoId,
+        category: video.category,
+        subheading: video.subheading,
+        thumbnail: video.thumbnail,
+        allowedEmails: video.allowedEmails,
+        createdAt: video.createdAt,
+      };
+    });
+
+    res.json(decryptedVideos);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };

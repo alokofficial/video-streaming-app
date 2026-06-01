@@ -9,6 +9,7 @@ import {
 import Navbar from "../components/Navbar";
 
 const ThreeBackground = lazy(() => import("../components/ThreeBackground"));
+import BulkImportSection from "../components/BulkImportSection";
 
 import API from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -462,15 +463,10 @@ export default function Admin() {
   };
 
   const validateForm = () => {
-    const titleLetters = countLetters(title);
     const descriptionLetters =
       countLetters(description);
     const driveFileIdLetters =
       countLetters(driveFileId);
-
-    if (titleLetters > fieldLimits.title) {
-      return `Video title can be maximum ${fieldLimits.title} letters`;
-    }
 
     if (
       descriptionLetters >
@@ -939,6 +935,14 @@ export default function Admin() {
             }`}
           >
             {editingVideoId ? "Edit Video" : "Add Video"}
+          </button>
+          <button
+            onClick={() => setActiveTab("bulkImport")}
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
+              activeTab === "bulkImport" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
+            }`}
+          >
+            Bulk Import
           </button>
           <button
             onClick={() => { setActiveTab("youtubeForm"); resetYoutubeForm(); }}
@@ -1650,7 +1654,7 @@ export default function Admin() {
               }
             />
             <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
-              {countLetters(title)} / {fieldLimits.title} characters
+              {countLetters(title)} characters
             </p>
           </div>
 
@@ -1831,6 +1835,24 @@ export default function Admin() {
         </form>
         )}
 
+        {activeTab === "bulkImport" && (
+          <BulkImportSection
+            onSuccess={(type) => {
+              if (type === "youtube") {
+                fetchYoutubeVideos();
+                setActiveTab("youtube");
+              } else if (type === "pdf") {
+                fetchDocuments();
+                setActiveTab("documentsList");
+              } else {
+                fetchVideos();
+                setActiveTab("content");
+              }
+              fetchUsers();
+            }}
+          />
+        )}
+
         {activeTab === "youtubeForm" && (
           <form
             onSubmit={handleYoutubeSubmit}
@@ -1857,8 +1879,7 @@ export default function Admin() {
                 }
               />
               <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
-                {countLetters(youtubeTitle)} /{" "}
-                {fieldLimits.title} characters
+                {countLetters(youtubeTitle)} characters
               </p>
             </div>
 
@@ -2038,8 +2059,7 @@ export default function Admin() {
                 }
               />
               <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
-                {countLetters(docTitle)} /{" "}
-                {fieldLimits.title} characters
+                {countLetters(docTitle)} characters
               </p>
             </div>
 

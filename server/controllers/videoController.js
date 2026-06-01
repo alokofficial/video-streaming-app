@@ -430,6 +430,13 @@ export const addVideo = async (
       qualities,
     } = req.body;
 
+    const existingVideo = await Video.findOne({ driveFileId });
+    if (existingVideo) {
+      return res.status(400).json({
+        message: `A video with Google Drive File ID '${driveFileId}' already exists.`,
+      });
+    }
+
     const video = await Video.create({
       title,
       description,
@@ -477,6 +484,18 @@ export const updateVideo = async (
       allowedEmails,
       qualities,
     } = req.body;
+
+    if (driveFileId) {
+      const existingVideo = await Video.findOne({
+        driveFileId,
+        _id: { $ne: req.params.id },
+      });
+      if (existingVideo) {
+        return res.status(400).json({
+          message: `A video with Google Drive File ID '${driveFileId}' already exists.`,
+        });
+      }
+    }
 
     const video = await Video.findByIdAndUpdate(
       req.params.id,
@@ -546,6 +565,126 @@ export const deleteVideo = async (
 
     console.log(error);
 
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+
+// BULK ADD VIDEOS
+export const bulkAddVideos = async (req, res) => {
+  try {
+    const { videos } = req.body;
+
+    if (!Array.isArray(videos) || videos.length === 0) {
+      return res.status(400).json({
+        message: "Payload 'videos' must be a non-empty array",
+      });
+    }
+
+    const existingVideos = await Video.find({}, "driveFileId");
+    const existingDriveIds = new Set(existingVideos.map((v) => v.driveFileId));
+    const processedDriveIds = new Set();
+
+    const processedVideos = [];
+
+    for (const item of videos) {
+      const {
+        title,
+        description,
+        category,
+        subheading,
+        driveFileId,
+        thumbnail,
+        allowedEmails,
+        qualities,
+      } = item;
+
+      // Validate required fields
+      if (!title || !String(title).trim()) {
+        return res.status(400).json({
+          message: "All videos must have a title",
+        });
+      }
+
+      if (!driveFileId || !String(driveFileId).trim()) {
+        return res.status(400).json({
+          message: `Video '${title}' must have a Google Drive File ID`,
+        });
+      }
+
+      const cleanDriveFileId = String(driveFileId).trim();
+
+      if (existingDriveIds.has(cleanDriveFileId)) {
+        return res.status(400).json({
+          message: `Video '${title}' cannot be imported because Google Drive File ID '${cleanDriveFileId}' already exists in the library.`,
+        });
+      }
+
+      if (processedDriveIds.has(cleanDriveFileId)) {
+        return res.status(400).json({
+          message: `Duplicate Google Drive File ID '${cleanDriveFileId}' found in import spreadsheet for video '${title}'.`,
+        });
+      }
+
+      processedDriveIds.add(cleanDriveFileId);
+
+
+
+      if (description && String(description).trim().length > 150) {
+        return res.status(400).json({
+          message: `Video description for '${title}' exceeds maximum 150 letters allowed`,
+        });
+      }
+
+      if (String(driveFileId).trim().length > 100) {
+        return res.status(400).json({
+          message: `Google Drive File ID for '${title}' exceeds maximum 100 letters allowed`,
+        });
+      }
+
+      const parsedEmails = normalizeEmailList(allowedEmails);
+      const parsedQualities = normalizeQualities(qualities);
+
+      // Validate parsed qualities lengths as well
+      for (const q of parsedQualities) {
+        if (q.driveFileId.length > 100) {
+          return res.status(400).json({
+            message: `Quality file ID for '${q.label}' in video '${title}' exceeds maximum 100 letters allowed`,
+          });
+        }
+      }
+
+      processedVideos.push({
+        title: String(title).trim(),
+        description: description ? String(description).trim() : "",
+        category: String(category || "General").trim() || "General",
+        subheading: String(subheading || "Featured").trim() || "Featured",
+        driveFileId: String(driveFileId).trim(),
+        thumbnail: thumbnail ? String(thumbnail).trim() : undefined,
+        allowedEmails: parsedEmails,
+        qualities: parsedQualities,
+      });
+    }
+
+    const createdVideos = await Video.insertMany(processedVideos);
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "BULK_IMPORT_VIDEOS",
+      details: `Bulk imported ${createdVideos.length} Google Drive videos`,
+      req,
+    });
+
+    res.status(201).json({
+      message: `Successfully imported ${createdVideos.length} videos`,
+      videos: createdVideos,
+    });
+  } catch (error) {
+    console.log(error);
     res.status(500).json({
       message: error.message,
     });

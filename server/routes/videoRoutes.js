@@ -4,6 +4,7 @@ import {
   getVideos,
   streamVideo,
   addVideo,
+  bulkAddVideos,
   updateVideo,
   deleteVideo,
 } from "../controllers/videoController.js";
@@ -15,6 +16,13 @@ import {
 const router = express.Router();
 
 router.get("/", protect, getVideos);
+
+router.post(
+  "/bulk",
+  protect,
+  authorizeRoles("admin"),
+  bulkAddVideos
+);
 
 router.post(
   "/",
