@@ -98,6 +98,15 @@ export const addYoutubeVideo = async (req, res) => {
       allowedEmails: normalizeEmailList(allowedEmails),
     });
 
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "CREATE_YOUTUBE",
+      details: `Added new YouTube video: "${video.title}"`,
+      req,
+    });
+
     res.status(201).json({ _id: video._id, title: video.title });
   } catch (error) {
     console.log(error);
@@ -158,6 +167,15 @@ export const updateYoutubeVideo = async (req, res) => {
       return res.status(404).json({ message: "Video not found" });
     }
 
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "UPDATE_YOUTUBE",
+      details: `Updated YouTube video: "${video.title}"`,
+      req,
+    });
+
     res.json({ _id: video._id, title: video.title });
   } catch (error) {
     console.log(error);
@@ -172,6 +190,15 @@ export const deleteYoutubeVideo = async (req, res) => {
     if (!video) {
       return res.status(404).json({ message: "Video not found" });
     }
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "DELETE_YOUTUBE",
+      details: `Deleted YouTube video: "${video.title}"`,
+      req,
+    });
 
     res.json({ message: "Video deleted successfully" });
   } catch (error) {
@@ -362,6 +389,31 @@ export const exportYoutubeVideos = async (req, res) => {
     res.json(decryptedVideos);
   } catch (error) {
     console.error(error);
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+// DELETE ALL YOUTUBE VIDEOS (ADMIN ONLY)
+export const deleteAllYoutubeVideos = async (req, res) => {
+  try {
+    const result = await YoutubeVideo.deleteMany({});
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "DELETE_ALL_YOUTUBE_VIDEOS",
+      details: `Deleted all YouTube videos (${result.deletedCount} items)`,
+      req,
+    });
+
+    res.json({
+      message: `Successfully deleted all YouTube videos (${result.deletedCount} items)`,
+    });
+  } catch (error) {
+    console.log(error);
     res.status(500).json({
       message: error.message,
     });

@@ -16,6 +16,22 @@ const ThreeBackground = lazy(() => import("../components/ThreeBackground"));
 import { useAuth } from "../context/AuthContext";
 import API from "../services/api";
 
+const extractDriveId = (input) => {
+  if (!input) return "";
+  const trimmed = String(input).trim();
+  const fileDRegex = /\/d\/([a-zA-Z0-9_-]+)/;
+  const matchD = trimmed.match(fileDRegex);
+  if (matchD && matchD[1]) {
+    return matchD[1];
+  }
+  const idParamRegex = /[?&]id=([a-zA-Z0-9_-]+)/;
+  const matchId = trimmed.match(idParamRegex);
+  if (matchId && matchId[1]) {
+    return matchId[1];
+  }
+  return trimmed;
+};
+
 const DEFAULT_DRIVE_THUMBNAIL =
   "https://imgs.search.brave.com/aJbpA-62AKAWzzdV3gLEKFsRmBL5DyMouzgU0y1RQO0/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMjIz/MzAxMjU5Ny9waG90/by9iZXJsaW4tZ2Vy/bWFueS1pbi10aGlz/LXBob3RvLWlsbHVz/dHJhdGlvbi10aGUt/Z29vZ2xlLWRyaXZl/LWFwcC1pcy1kaXNw/bGF5ZWQtb24tdGhl/LXNjcmVlbi1vZi5q/cGc_cz02MTJ4NjEy/Jnc9MCZrPTIwJmM9/aERiNVVtOHlRM0Vs/VkJrMFU5a04zZ3dr/QS1GNnNnS3RON3Uw/ZVRpdGV5WT0";
 const DEFAULT_YOUTUBE_THUMBNAIL =
@@ -49,6 +65,142 @@ export default function Home() {
     useState("");
   const [hasLoadedHeadingOrder, setHasLoadedHeadingOrder] =
     useState(false);
+
+  // --- Inline Add Content Modal States ---
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [modalCategory, setModalCategory] = useState("");
+  const [modalSubheading, setModalSubheading] = useState("");
+  const [modalContentType, setModalContentType] = useState("drive"); // "drive", "youtube", "pdf"
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalDescription, setModalDescription] = useState("");
+  const [modalDriveFileId, setModalDriveFileId] = useState("");
+  const [modalYoutubeVideoId, setModalYoutubeVideoId] = useState("");
+  const [modalThumbnail, setModalThumbnail] = useState("");
+  const [modalSelectedEmails, setModalSelectedEmails] = useState([]);
+  const [emailSearchQuery, setEmailSearchQuery] = useState("");
+  const [isEmailDropdownOpen, setIsEmailDropdownOpen] = useState(false);
+  const [modalQualities, setModalQualities] = useState("");
+  const [isModalSubmitting, setIsModalSubmitting] = useState(false);
+  const [modalError, setModalError] = useState("");
+  const [modalSuccess, setModalSuccess] = useState("");
+
+  const handleOpenAddModal = (cat, sub, initialType) => {
+    setModalCategory(cat);
+    setModalSubheading(sub);
+    setModalContentType(initialType);
+    setModalTitle("");
+    setModalDescription("");
+    setModalDriveFileId("");
+    setModalYoutubeVideoId("");
+    setModalThumbnail("");
+    setModalSelectedEmails([]);
+    setEmailSearchQuery("");
+    setIsEmailDropdownOpen(false);
+    setModalQualities("");
+    setModalError("");
+    setModalSuccess("");
+    setIsAddModalOpen(true);
+  };
+
+  const handleModalSubmit = async (e) => {
+    e.preventDefault();
+    setModalError("");
+    setModalSuccess("");
+
+    if (!modalTitle.trim()) {
+      setModalError("Title is required");
+      return;
+    }
+
+    if (modalContentType === "drive" || modalContentType === "pdf") {
+      if (!modalDriveFileId.trim()) {
+        setModalError("Google Drive File ID is required");
+        return;
+      }
+      if (modalDriveFileId.trim().length > 100) {
+        setModalError("Google Drive File ID can be maximum 100 characters");
+        return;
+      }
+      if (modalDescription.trim().length > 150) {
+        setModalError("Description can be maximum 150 characters");
+        return;
+      }
+    } else if (modalContentType === "youtube") {
+      if (!modalYoutubeVideoId.trim()) {
+        setModalError("YouTube Video ID is required");
+        return;
+      }
+    }
+
+    setIsModalSubmitting(true);
+
+    try {
+      const parsedEmails = modalSelectedEmails;
+
+      if (modalContentType === "drive") {
+        const parsedQualities = modalQualities
+          .split("\n")
+          .map((line) => {
+            const [label, ...fileIdParts] = line.split(":");
+            return {
+              label: label?.trim(),
+              driveFileId: fileIdParts.join(":").trim(),
+            };
+          })
+          .filter((q) => q.label && q.driveFileId);
+
+        const invalidQ = parsedQualities.find(q => q.driveFileId.length > 100);
+        if (invalidQ) {
+          setModalError(`Quality file ID for ${invalidQ.label} can be maximum 100 characters`);
+          setIsModalSubmitting(false);
+          return;
+        }
+
+        await API.post("/videos", {
+          title: modalTitle.trim(),
+          description: modalDescription.trim(),
+          category: modalCategory,
+          subheading: modalSubheading,
+          driveFileId: modalDriveFileId.trim(),
+          thumbnail: modalThumbnail.trim() || DEFAULT_DRIVE_THUMBNAIL,
+          allowedEmails: parsedEmails,
+          qualities: parsedQualities,
+        });
+      } else if (modalContentType === "youtube") {
+        await API.post("/youtube", {
+          title: modalTitle.trim(),
+          videoId: modalYoutubeVideoId.trim(),
+          category: modalCategory,
+          subheading: modalSubheading,
+          thumbnail: modalThumbnail.trim() || DEFAULT_YOUTUBE_THUMBNAIL,
+          allowedEmails: parsedEmails,
+        });
+      } else if (modalContentType === "pdf") {
+        await API.post("/documents", {
+          title: modalTitle.trim(),
+          description: modalDescription.trim(),
+          category: modalCategory || "PDFs",
+          subheading: modalSubheading || "PDF",
+          driveFileId: modalDriveFileId.trim(),
+          thumbnail: modalThumbnail.trim() || DEFAULT_PDF_THUMBNAIL,
+          allowedEmails: parsedEmails,
+        });
+      }
+
+      setModalSuccess("Successfully added!");
+      fetchVideos();
+      setTimeout(() => {
+        setIsAddModalOpen(false);
+      }, 1200);
+    } catch (error) {
+      console.error(error);
+      const errMsg = error.response?.data?.message || error.message || "Failed to add content";
+      setModalError(errMsg);
+    } finally {
+      setIsModalSubmitting(false);
+    }
+  };
+
   const [categoryOrder, setCategoryOrder] =
     useState(() => {
       try {
@@ -482,123 +634,531 @@ export default function Home() {
           {categories
             .filter((category) => activeTab === "All" || activeTab === category)
             .map(
-            (category) => (
-              <section key={category}>
-                <h2 className="mb-4 text-2xl font-bold sm:mb-5 sm:text-3xl">
-                  {category}
-                </h2>
+            (category) => {
+              const categoryItems = groupedContent[category] || [];
+              const isPdfGroup = category === "PDFs" || categoryItems.every(item => item.contentType === "pdf");
 
-                {category === "PDFs" ? (
-                  <div className="flex flex-col gap-3">
-                    {groupedContent[category].map((item) => (
-                      <Link
-                        key={`${item.contentType}-${item._id}`}
-                        to={item.href}
-                        className="group block"
-                      >
-                        <div className="flex items-center gap-4 rounded-xl border border-slate-200 dark:border-white/5 app-panel p-3 shadow-md hover:shadow-xl dark:shadow-black/50 transition-all duration-300 hover:border-red-500/30 hover:bg-slate-900/40">
-                          {/* Thumbnail */}
-                          <div className="relative h-14 w-20 sm:h-16 sm:w-24 shrink-0 overflow-hidden rounded-lg">
+              return (
+                <section key={category}>
+                  <h2 className="mb-4 text-2xl font-bold sm:mb-5 sm:text-3xl border-b border-white/10 pb-2">
+                    {category}
+                  </h2>
+
+                  {isPdfGroup ? (
+                    <div className="flex flex-col gap-3">
+                      {categoryItems.map((item) => (
+                        <Link
+                          key={`${item.contentType}-${item._id}`}
+                          to={item.href}
+                          className="group block"
+                        >
+                          <div className="flex items-center gap-4 rounded-xl border border-slate-200 dark:border-white/5 app-panel p-3 shadow-md hover:shadow-xl dark:shadow-black/50 transition-all duration-300 hover:border-red-500/30 hover:bg-slate-900/40">
+                            {/* Thumbnail */}
+                            <div className="relative h-14 w-20 sm:h-16 sm:w-24 shrink-0 overflow-hidden rounded-lg">
+                              <img
+                                src={item.thumbnail}
+                                alt={item.title}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              />
+                            </div>
+
+                            {/* Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-sm sm:text-base font-semibold text-white truncate group-hover:text-red-500 transition-colors">
+                                  {item.title}
+                                </h3>
+                                <span
+                                  className={`rounded px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white shadow-sm shrink-0 ${
+                                    item.contentType === "youtube"
+                                      ? "bg-red-600/70 border-red-500/30"
+                                      : item.contentType === "pdf"
+                                        ? "bg-teal-600/70 border-teal-500/30"
+                                        : "bg-blue-600/70 border-blue-500/30"
+                                  }`}
+                                >
+                                  {item.contentType === "youtube"
+                                    ? "YouTube"
+                                    : item.contentType === "pdf"
+                                      ? "PDF"
+                                      : item.subheading}
+                                </span>
+                              </div>
+                              {item.description && (
+                                <p className="mt-1 text-xs text-slate-400 dark:text-slate-400 line-clamp-1">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Arrow Icon */}
+                            <div className="text-slate-500 group-hover:text-red-500 transition-colors pr-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:translate-x-1 transition-transform">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                              </svg>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+
+                      {/* Plus button/row for PDF if admin */}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddModal(category, "PDF", "pdf")}
+                          className="flex items-center gap-4 rounded-xl border border-dashed border-slate-400/30 dark:border-white/10 p-3 hover:border-red-500/50 hover:bg-slate-900/20 transition-all duration-300 text-slate-400 hover:text-red-500 justify-center group cursor-pointer"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 group-hover:scale-110 transition-transform">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                          </svg>
+                          <span className="text-sm font-semibold">Add PDF to "{category}"</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {categoryItems.map((item) => (
+                        <Link
+                          key={`${item.contentType}-${item._id}`}
+                          to={item.href}
+                          className="group"
+                        >
+                          <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-white/5 app-panel aspect-video shadow-md hover:shadow-2xl dark:shadow-black/50 transition-all duration-300 transform hover:-translate-y-1 hover:border-red-500/30">
+                            {/* Video Thumbnail */}
                             <img
                               src={item.thumbnail}
                               alt={item.title}
                               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             />
-                          </div>
 
-                          {/* Details */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-sm sm:text-base font-semibold text-white truncate group-hover:text-red-500 transition-colors">
-                                {item.title}
-                              </h3>
-                              <span
-                                className={`rounded px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white shadow-sm shrink-0 ${
-                                  item.contentType === "youtube"
-                                    ? "bg-red-600/70 border-red-500/30"
-                                    : item.contentType === "pdf"
-                                      ? "bg-teal-600/70 border-teal-500/30"
-                                      : "bg-blue-600/70 border-blue-500/30"
-                                }`}
-                              >
-                                {item.contentType === "youtube"
-                                  ? "YouTube"
+                            {/* Video Type Badge */}
+                            <span
+                              className={`absolute top-3 right-3 z-10 rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white shadow-sm ${
+                                item.contentType === "youtube"
+                                  ? "bg-red-600/70 border-red-500/30"
                                   : item.contentType === "pdf"
-                                    ? "PDF"
-                                    : item.subheading}
-                              </span>
-                            </div>
-                            {item.description && (
-                              <p className="mt-1 text-xs text-slate-400 dark:text-slate-400 line-clamp-1">
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
+                                    ? "bg-teal-600/70 border-teal-500/30"
+                                    : "bg-blue-600/70 border-blue-500/30"
+                              }`}
+                            >
+                              {item.contentType === "youtube"
+                                ? "YouTube"
+                                : item.contentType === "pdf"
+                                  ? "PDF"
+                                  : item.subheading}
+                            </span>
 
-                          {/* Arrow Icon */}
-                          <div className="text-slate-500 group-hover:text-red-500 transition-colors pr-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:translate-x-1 transition-transform">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                            {/* Hover Info Overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                              <h4 className="text-sm font-extrabold text-white leading-tight transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
+                                {item.title}
+                              </h4>
+                              {item.description && (
+                                <p className="mt-1 text-[11px] text-white/70 line-clamp-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75">
+                                  {item.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+
+                      {/* Plus card for videos if admin */}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddModal(category, category === "YouTube" ? "Protected YouTube Videos" : "Featured", category === "YouTube" ? "youtube" : "drive")}
+                          className="group relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 dark:border-white/10 aspect-video flex flex-col items-center justify-center gap-2 hover:border-red-500/50 hover:bg-slate-900/30 transition-all duration-300 cursor-pointer"
+                        >
+                          <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-slate-800 border border-slate-700/50 group-hover:bg-red-500/10 group-hover:border-red-500/30 transition-all duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400 group-hover:text-red-500 transition-colors">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                             </svg>
                           </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {groupedContent[category].map((item) => (
-                      <Link
-                        key={`${item.contentType}-${item._id}`}
-                        to={item.href}
-                        className="group"
-                      >
-                        <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-white/5 app-panel aspect-video shadow-md hover:shadow-2xl dark:shadow-black/50 transition-all duration-300 transform hover:-translate-y-1 hover:border-red-500/30">
-                          {/* Video Thumbnail */}
-                          <img
-                            src={item.thumbnail}
-                            alt={item.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-
-                          {/* Video Type Badge */}
-                          <span
-                            className={`absolute top-3 right-3 z-10 rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white shadow-sm ${
-                              item.contentType === "youtube"
-                                ? "bg-red-600/70 border-red-500/30"
-                                : item.contentType === "pdf"
-                                  ? "bg-teal-600/70 border-teal-500/30"
-                                  : "bg-blue-600/70 border-blue-500/30"
-                            }`}
-                          >
-                            {item.contentType === "youtube"
-                              ? "YouTube"
-                              : item.contentType === "pdf"
-                                ? "PDF"
-                                : item.subheading}
+                          <span className="text-xs font-bold text-slate-400 group-hover:text-red-500 transition-colors px-4 text-center">
+                            Add to "{category}"
                           </span>
-
-                          {/* Hover Info Overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                            <h4 className="text-sm font-extrabold text-white leading-tight transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
-                              {item.title}
-                            </h4>
-                            {item.description && (
-                              <p className="mt-1 text-[11px] text-white/70 line-clamp-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75">
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </section>
-            )
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </section>
+              );
+            }
           )}
         </div>
       </div>
+
+      {/* Inline Add Content Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-fade-in">
+          <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 app-panel shadow-2xl animate-scale-in transition-all">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-white/5 p-4 sm:p-5">
+              <h2 className="text-lg font-bold sm:text-xl">
+                Add Content to "{modalCategory}"
+              </h2>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleModalSubmit} className="p-4 sm:p-5 max-h-[85vh] overflow-y-auto space-y-4">
+              {/* Error and Success Indicators */}
+              {modalError && (
+                <div className="rounded-lg bg-red-950/50 border border-red-500/30 p-3 text-sm text-red-400 font-medium">
+                  {modalError}
+                </div>
+              )}
+              {modalSuccess && (
+                <div className="rounded-lg bg-emerald-950/50 border border-emerald-500/30 p-3 text-sm text-emerald-400 font-medium">
+                  {modalSuccess}
+                </div>
+              )}
+
+              {/* Content Type Tabs */}
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Content Type
+                </label>
+                <div className="flex rounded-lg bg-slate-950 p-1 border border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalContentType("drive");
+                      setModalError("");
+                      if (modalSubheading === "PDF" || modalSubheading === "Protected YouTube Videos" || !modalSubheading) {
+                        setModalSubheading("Featured");
+                      }
+                    }}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                      modalContentType === "drive"
+                        ? "bg-blue-600/20 border border-blue-500/30 text-blue-400 shadow-sm font-bold"
+                        : "text-slate-400 border border-transparent hover:text-white"
+                    }`}
+                  >
+                    Drive Video
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalContentType("youtube");
+                      setModalError("");
+                      if (modalSubheading === "PDF" || modalSubheading === "Featured" || !modalSubheading) {
+                        setModalSubheading("Protected YouTube Videos");
+                      }
+                    }}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                      modalContentType === "youtube"
+                        ? "bg-red-600/20 border border-red-500/30 text-red-400 shadow-sm font-bold"
+                        : "text-slate-400 border border-transparent hover:text-white"
+                    }`}
+                  >
+                    YouTube
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalContentType("pdf");
+                      setModalError("");
+                      if (modalSubheading === "Featured" || modalSubheading === "Protected YouTube Videos" || !modalSubheading) {
+                        setModalSubheading("PDF");
+                      }
+                    }}
+                    className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                      modalContentType === "pdf"
+                        ? "bg-teal-600/20 border border-teal-500/30 text-teal-400 shadow-sm font-bold"
+                        : "text-slate-400 border border-transparent hover:text-white"
+                    }`}
+                  >
+                    PDF Document
+                  </button>
+                </div>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={modalTitle}
+                  onChange={(e) => setModalTitle(e.target.value)}
+                  placeholder="Enter title"
+                  className="w-full rounded-lg border app-border app-surface px-3 py-2 text-sm outline-none transition focus:border-red-500"
+                />
+              </div>
+
+              {/* Description (Drive / PDF only) */}
+              {(modalContentType === "drive" || modalContentType === "pdf") && (
+                <div>
+                  <div className="flex justify-between">
+                    <label className="mb-1.5 block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      Description
+                    </label>
+                    <span className="text-[10px] text-slate-500">
+                      {modalDescription.length}/150
+                    </span>
+                  </div>
+                  <textarea
+                    value={modalDescription}
+                    onChange={(e) => setModalDescription(e.target.value)}
+                    maxLength={150}
+                    placeholder="Enter short description..."
+                    rows={2}
+                    className="w-full rounded-lg border app-border app-surface px-3 py-2 text-sm outline-none transition focus:border-red-500"
+                  />
+                </div>
+              )}
+
+              {/* ID Fields */}
+              {modalContentType === "youtube" ? (
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    YouTube Video ID *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={modalYoutubeVideoId}
+                    onChange={(e) => setModalYoutubeVideoId(e.target.value)}
+                    placeholder="e.g. dQw4w9WgXcQ"
+                    className="w-full rounded-lg border app-border app-surface px-3 py-2 text-sm outline-none transition focus:border-red-500"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Google Drive File ID *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={modalDriveFileId}
+                    onChange={(e) => setModalDriveFileId(extractDriveId(e.target.value))}
+                    placeholder="Enter Google Drive File ID"
+                    className="w-full rounded-lg border app-border app-surface px-3 py-2 text-sm outline-none transition focus:border-red-500"
+                  />
+                </div>
+              )}
+
+              {/* Category & Subheading */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Category (Heading)
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    disabled
+                    value={modalCategory}
+                    className="w-full rounded-lg border app-border bg-slate-900/50 px-3 py-2 text-sm text-slate-400 outline-none cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Subheading *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={modalSubheading}
+                    onChange={(e) => setModalSubheading(e.target.value)}
+                    placeholder="e.g. Featured"
+                    className="w-full rounded-lg border app-border app-surface px-3 py-2 text-sm outline-none transition focus:border-red-500"
+                  />
+                </div>
+              </div>
+
+              {/* Thumbnail URL */}
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Thumbnail URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={modalThumbnail}
+                  onChange={(e) => setModalThumbnail(e.target.value)}
+                  placeholder="Leave blank for default thumbnail"
+                  className="w-full rounded-lg border app-border app-surface px-3 py-2 text-sm outline-none transition focus:border-red-500"
+                />
+              </div>
+
+              {/* Allowed Emails Search-and-Select Dropdown */}
+              <div className="relative">
+                <label className="mb-1.5 block text-xs font-semibold text-slate-400 uppercase tracking-wider flex justify-between">
+                  <span>Allowed Emails (Optional)</span>
+                  <span className="text-[10px] lowercase font-normal text-slate-500">
+                    Visible to all if left blank
+                  </span>
+                </label>
+
+                {/* Selected Email Pills Container */}
+                <div className="min-h-[42px] w-full rounded-lg border app-border app-surface p-1.5 flex flex-wrap gap-1.5 items-center transition focus-within:border-red-500">
+                  {modalSelectedEmails.map((email) => (
+                    <span
+                      key={email}
+                      className="inline-flex items-center gap-1 rounded bg-red-600/20 border border-red-500/30 px-2 py-0.5 text-xs text-red-300 font-medium animate-fade-in"
+                    >
+                      {email}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setModalSelectedEmails(modalSelectedEmails.filter(e => e !== email));
+                        }}
+                        className="text-[10px] text-red-400 hover:text-red-200 transition font-bold cursor-pointer"
+                      >
+                        x
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    placeholder={modalSelectedEmails.length === 0 ? "Select or type email..." : ""}
+                    value={emailSearchQuery}
+                    onChange={(e) => {
+                      setEmailSearchQuery(e.target.value);
+                      setIsEmailDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsEmailDropdownOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === ",") {
+                        e.preventDefault();
+                        const val = emailSearchQuery.trim().toLowerCase();
+                        if (val && !modalSelectedEmails.includes(val)) {
+                          setModalSelectedEmails([...modalSelectedEmails, val]);
+                          setEmailSearchQuery("");
+                        }
+                      }
+                    }}
+                    className="flex-1 min-w-[120px] bg-transparent text-sm text-white outline-none border-none p-0.5"
+                  />
+                </div>
+
+                {/* Dropdown Menu */}
+                {isEmailDropdownOpen && (
+                  <>
+                    {/* Invisible overlay to close dropdown on outside click */}
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setIsEmailDropdownOpen(false)}
+                    />
+                    <ul className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700/80 bg-slate-950 p-1 shadow-xl z-20 scrollbar-hide space-y-0.5">
+                      {/* Manual Add option */}
+                      {emailSearchQuery.trim() && !modalSelectedEmails.includes(emailSearchQuery.trim().toLowerCase()) && (
+                        <li>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const val = emailSearchQuery.trim().toLowerCase();
+                              setModalSelectedEmails([...modalSelectedEmails, val]);
+                              setEmailSearchQuery("");
+                            }}
+                            className="w-full text-left rounded px-3 py-2 text-xs font-semibold text-red-400 hover:bg-white/5 transition cursor-pointer"
+                          >
+                            Add custom email: "{emailSearchQuery.trim()}"
+                          </button>
+                        </li>
+                      )}
+
+                      {/* Filtered users list */}
+                      {users
+                        .filter(u => {
+                          const email = u.email?.toLowerCase() || "";
+                          const matchesSearch = email.includes(emailSearchQuery.toLowerCase());
+                          const isAlreadySelected = modalSelectedEmails.includes(email);
+                          return matchesSearch && !isAlreadySelected;
+                        })
+                        .map(u => (
+                          <li key={u.id || u.email}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setModalSelectedEmails([...modalSelectedEmails, u.email.toLowerCase()]);
+                                setEmailSearchQuery("");
+                              }}
+                              className="w-full text-left rounded px-3 py-2 text-sm text-white hover:bg-red-600/10 hover:text-red-400 transition cursor-pointer"
+                            >
+                              <div className="font-semibold">{u.name}</div>
+                              <div className="text-xs text-slate-400">{u.email}</div>
+                            </button>
+                          </li>
+                        ))
+                      }
+
+                      {/* Empty state */}
+                      {users.filter(u => {
+                        const email = u.email?.toLowerCase() || "";
+                        return email.includes(emailSearchQuery.toLowerCase()) && !modalSelectedEmails.includes(email);
+                      }).length === 0 && !emailSearchQuery.trim() && (
+                        <li className="px-3 py-2 text-xs text-slate-500 text-center">
+                          No users available to select
+                        </li>
+                      )}
+                    </ul>
+                  </>
+                )}
+              </div>
+
+              {/* Qualities (Drive Video only) */}
+              {modalContentType === "drive" && (
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-400 uppercase tracking-wider flex justify-between">
+                    <span>Qualities (Optional)</span>
+                    <span className="text-[10px] lowercase font-normal text-slate-500">Format: Label:driveFileId (one per line)</span>
+                  </label>
+                  <textarea
+                    value={modalQualities}
+                    onChange={(e) => setModalQualities(e.target.value)}
+                    placeholder="e.g.&#10;1080p: 1abc_fileid_123&#10;720p: 1xyz_fileid_456"
+                    rows={2.5}
+                    className="w-full rounded-lg border app-border app-surface px-3 py-2 text-sm font-mono outline-none transition focus:border-red-500 text-xs"
+                  />
+                </div>
+              )}
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-3 border-t border-white/5 pt-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  disabled={isModalSubmitting}
+                  className="rounded-lg px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-white/5 active:bg-white/10 transition disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isModalSubmitting}
+                  className="rounded-lg bg-red-600 hover:bg-red-700 active:bg-red-800 text-white px-5 py-2.5 text-sm font-bold shadow-md shadow-red-900/20 transition disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                >
+                  {isModalSubmitting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Adding...
+                    </>
+                  ) : (
+                    "Add Content"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

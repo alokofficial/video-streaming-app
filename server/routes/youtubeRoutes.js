@@ -6,6 +6,7 @@ import {
   bulkAddYoutubeVideos,
   updateYoutubeVideo,
   deleteYoutubeVideo,
+  deleteAllYoutubeVideos,
   embedYoutubeVideo,
   exportYoutubeVideos,
 } from "../controllers/youtubeController.js";
@@ -44,6 +45,13 @@ router.put(
   protect,
   authorizeRoles("admin"),
   updateYoutubeVideo
+);
+
+router.delete(
+  "/all",
+  protect,
+  authorizeRoles("admin"),
+  deleteAllYoutubeVideos
 );
 
 router.delete(

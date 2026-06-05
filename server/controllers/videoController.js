@@ -2,6 +2,22 @@ import Video from "../models/Video.js";
 import driveService from "../config/googleDrive.js";
 import { logActivity } from "../utils/logger.js";
 
+const extractDriveId = (input) => {
+  if (!input) return "";
+  const trimmed = String(input).trim();
+  const fileDRegex = /\/d\/([a-zA-Z0-9_-]+)/;
+  const matchD = trimmed.match(fileDRegex);
+  if (matchD && matchD[1]) {
+    return matchD[1];
+  }
+  const idParamRegex = /[?&]id=([a-zA-Z0-9_-]+)/;
+  const matchId = trimmed.match(idParamRegex);
+  if (matchId && matchId[1]) {
+    return matchId[1];
+  }
+  return trimmed;
+};
+
 const metadataCache = new Map();
 const METADATA_CACHE_MS = 5 * 60 * 1000;
 const STREAM_CHUNK_SIZE = 4 * 1024 * 1024;
@@ -64,9 +80,7 @@ const normalizeQualities = (qualities) => {
   return qualityList
     .map((quality) => ({
       label: String(quality.label || "").trim(),
-      driveFileId: String(
-        quality.driveFileId || ""
-      ).trim(),
+      driveFileId: extractDriveId(quality.driveFileId),
     }))
     .filter(
       (quality) =>
@@ -430,10 +444,12 @@ export const addVideo = async (
       qualities,
     } = req.body;
 
-    const existingVideo = await Video.findOne({ driveFileId });
+    const cleanDriveFileId = extractDriveId(driveFileId);
+
+    const existingVideo = await Video.findOne({ driveFileId: cleanDriveFileId });
     if (existingVideo) {
       return res.status(400).json({
-        message: `A video with Google Drive File ID '${driveFileId}' already exists.`,
+        message: `A video with Google Drive File ID '${cleanDriveFileId}' already exists.`,
       });
     }
 
@@ -446,11 +462,20 @@ export const addVideo = async (
       subheading:
         String(subheading || "Featured").trim() ||
         "Featured",
-      driveFileId,
+      driveFileId: cleanDriveFileId,
       thumbnail,
       allowedEmails:
         normalizeEmailList(allowedEmails),
       qualities: normalizeQualities(qualities),
+    });
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "CREATE_VIDEO",
+      details: `Added new Google Drive video: "${video.title}"`,
+      req,
     });
 
     res.status(201).json(video);
@@ -485,14 +510,16 @@ export const updateVideo = async (
       qualities,
     } = req.body;
 
-    if (driveFileId) {
+    const cleanDriveFileId = driveFileId ? extractDriveId(driveFileId) : undefined;
+
+    if (cleanDriveFileId) {
       const existingVideo = await Video.findOne({
-        driveFileId,
+        driveFileId: cleanDriveFileId,
         _id: { $ne: req.params.id },
       });
       if (existingVideo) {
         return res.status(400).json({
-          message: `A video with Google Drive File ID '${driveFileId}' already exists.`,
+          message: `A video with Google Drive File ID '${cleanDriveFileId}' already exists.`,
         });
       }
     }
@@ -508,7 +535,7 @@ export const updateVideo = async (
         subheading:
           String(subheading || "Featured").trim() ||
           "Featured",
-        driveFileId,
+        driveFileId: cleanDriveFileId,
         thumbnail,
         allowedEmails:
           normalizeEmailList(allowedEmails),
@@ -525,6 +552,15 @@ export const updateVideo = async (
         message: "Video not found",
       });
     }
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "UPDATE_VIDEO",
+      details: `Updated Google Drive video: "${video.title}"`,
+      req,
+    });
 
     res.json(video);
 
@@ -556,6 +592,15 @@ export const deleteVideo = async (
         message: "Video not found",
       });
     }
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "DELETE_VIDEO",
+      details: `Deleted Google Drive video: "${video.title}"`,
+      req,
+    });
 
     res.json({
       message: "Video deleted successfully",
@@ -614,7 +659,7 @@ export const bulkAddVideos = async (req, res) => {
         });
       }
 
-      const cleanDriveFileId = String(driveFileId).trim();
+      const cleanDriveFileId = extractDriveId(driveFileId);
 
       if (existingDriveIds.has(cleanDriveFileId)) {
         return res.status(400).json({
@@ -682,6 +727,31 @@ export const bulkAddVideos = async (req, res) => {
     res.status(201).json({
       message: `Successfully imported ${createdVideos.length} videos`,
       videos: createdVideos,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+// DELETE ALL VIDEOS (ADMIN ONLY)
+export const deleteAllVideos = async (req, res) => {
+  try {
+    const result = await Video.deleteMany({});
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "DELETE_ALL_VIDEOS",
+      details: `Deleted all Google Drive videos (${result.deletedCount} items)`,
+      req,
+    });
+
+    res.json({
+      message: `Successfully deleted all Drive videos (${result.deletedCount} items)`,
     });
   } catch (error) {
     console.log(error);

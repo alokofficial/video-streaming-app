@@ -7,6 +7,7 @@ import {
   bulkAddVideos,
   updateVideo,
   deleteVideo,
+  deleteAllVideos,
 } from "../controllers/videoController.js";
 import {
   protect,
@@ -36,6 +37,13 @@ router.put(
   protect,
   authorizeRoles("admin"),
   updateVideo
+);
+
+router.delete(
+  "/all",
+  protect,
+  authorizeRoles("admin"),
+  deleteAllVideos
 );
 
 router.delete(

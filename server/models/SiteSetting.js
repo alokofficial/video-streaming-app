@@ -18,6 +18,10 @@ const siteSettingSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    fontFamily: {
+      type: String,
+      default: "Inter",
+    },
   },
   {
     _id: false,

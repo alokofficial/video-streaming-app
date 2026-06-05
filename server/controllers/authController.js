@@ -520,6 +520,7 @@ export const getSiteGateStatus = async (req, res) => {
     res.json({
       gateEnabled: settings.gateEnabled && !!settings.gatePasswordHash,
       threeJsBackgroundEnabled: settings.threeJsBackgroundEnabled !== false,
+      fontFamily: settings.fontFamily || "Inter",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -559,16 +560,33 @@ export const getSiteGateSettings = async (req, res) => {
       gateEnabled: settings.gateEnabled,
       hasPassword: !!settings.gatePasswordHash,
       threeJsBackgroundEnabled: settings.threeJsBackgroundEnabled !== false,
+      fontFamily: settings.fontFamily || "Inter",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+const ALLOWED_FONTS = [
+  "Inter",
+  "Outfit",
+  "Poppins",
+  "Roboto",
+  "Montserrat",
+  "Playfair Display",
+  "Lora",
+  "Fira Code",
+  "Plus Jakarta Sans",
+  "Space Grotesk",
+  "Syne",
+  "Cinzel",
+  "Lexend",
+];
+
 // ADMIN — set/update gate (toggle, change password)
 export const setSiteGate = async (req, res) => {
   try {
-    const { enabled, password, threeJsBackgroundEnabled } = req.body;
+    const { enabled, password, threeJsBackgroundEnabled, fontFamily } = req.body;
 
     const update = {};
 
@@ -578,6 +596,13 @@ export const setSiteGate = async (req, res) => {
 
     if (typeof threeJsBackgroundEnabled === "boolean") {
       update.threeJsBackgroundEnabled = threeJsBackgroundEnabled;
+    }
+
+    if (fontFamily !== undefined) {
+      if (!ALLOWED_FONTS.includes(fontFamily)) {
+        return res.status(400).json({ message: "Invalid font family selected" });
+      }
+      update.fontFamily = fontFamily;
     }
 
     if (password && password.trim().length > 0) {
@@ -601,6 +626,9 @@ export const setSiteGate = async (req, res) => {
     if (typeof threeJsBackgroundEnabled === "boolean") {
       detailParts.push(`threeJsBackgroundEnabled: ${threeJsBackgroundEnabled}`);
     }
+    if (fontFamily !== undefined) {
+      detailParts.push(`fontFamily: ${fontFamily}`);
+    }
     if (password && password.trim().length > 0) {
       detailParts.push("accessPassword: updated");
     }
@@ -612,7 +640,7 @@ export const setSiteGate = async (req, res) => {
       userId: req.user._id,
       userName: req.user.name,
       userEmail: req.user.email,
-      action: "CHANGE_GATE_SETTINGS",
+      action: "UPDATE_SITE_SETTINGS",
       details: logDetails,
       req,
     });
@@ -622,6 +650,7 @@ export const setSiteGate = async (req, res) => {
       gateEnabled: settings.gateEnabled,
       hasPassword: !!settings.gatePasswordHash,
       threeJsBackgroundEnabled: settings.threeJsBackgroundEnabled !== false,
+      fontFamily: settings.fontFamily || "Inter",
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -635,12 +664,45 @@ export const getActivityLogs = async (req, res) => {
     const limit = Math.max(Number(req.query.limit) || 50, 1);
     const skip = (page - 1) * limit;
 
-    const logs = await Log.find()
+    const { search, actionType } = req.query;
+    const query = {};
+
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), "i");
+      query.$or = [
+        { userName: searchRegex },
+        { userEmail: searchRegex },
+        { details: searchRegex },
+        { action: searchRegex }
+      ];
+    }
+
+    if (actionType && actionType !== "ALL") {
+      if (actionType === "AUTH") {
+        query.action = { $in: ["LOGIN", "REGISTER", "CHANGE_PASSWORD", "UPDATE_PROFILE"] };
+      } else if (actionType === "CONTENT") {
+        query.action = {
+          $in: [
+            "CREATE_VIDEO", "UPDATE_VIDEO", "DELETE_VIDEO",
+            "CREATE_YOUTUBE", "UPDATE_YOUTUBE", "DELETE_YOUTUBE",
+            "CREATE_DOCUMENT", "UPDATE_DOCUMENT", "DELETE_DOCUMENT",
+            "BULK_IMPORT_VIDEOS", "BULK_IMPORT_YOUTUBE_VIDEOS", "BULK_IMPORT_DOCUMENTS",
+            "DELETE_ALL_VIDEOS", "DELETE_ALL_YOUTUBE_VIDEOS", "DELETE_ALL_DOCUMENTS"
+          ]
+        };
+      } else if (actionType === "SYSTEM") {
+        query.action = { $in: ["UPDATE_SITE_SETTINGS", "CHANGE_GATE_SETTINGS", "CLEAR_LOGS"] };
+      } else if (actionType === "CONSUMPTION") {
+        query.action = { $in: ["WATCH_DRIVE_VIDEO", "WATCH_YOUTUBE_VIDEO", "VIEW_DRIVE_DOCUMENT"] };
+      }
+    }
+
+    const logs = await Log.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const total = await Log.countDocuments();
+    const total = await Log.countDocuments(query);
 
     res.json({
       logs,

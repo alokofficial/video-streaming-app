@@ -2,6 +2,22 @@ import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import API from "../services/api";
 
+const extractDriveId = (input) => {
+  if (!input) return "";
+  const trimmed = String(input).trim();
+  const fileDRegex = /\/d\/([a-zA-Z0-9_-]+)/;
+  const matchD = trimmed.match(fileDRegex);
+  if (matchD && matchD[1]) {
+    return matchD[1];
+  }
+  const idParamRegex = /[?&]id=([a-zA-Z0-9_-]+)/;
+  const matchId = trimmed.match(idParamRegex);
+  if (matchId && matchId[1]) {
+    return matchId[1];
+  }
+  return trimmed;
+};
+
 export default function BulkImportSection({ onSuccess }) {
   const [importType, setImportType] = useState("drive"); // "drive", "youtube", "pdf"
   const [file, setFile] = useState(null);
@@ -12,6 +28,8 @@ export default function BulkImportSection({ onSuccess }) {
   const [importStatus, setImportStatus] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [existingDbIds, setExistingDbIds] = useState(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Field constraints matching backend validation
   const FIELD_LIMITS = {
@@ -91,7 +109,7 @@ export default function BulkImportSection({ onSuccess }) {
         cleanKey === "googledrivefileid" ||
         cleanKey === "googledrivepdffileid"
       ) {
-        normalized.driveFileId = cleanVal;
+        normalized.driveFileId = extractDriveId(cleanVal);
       } else if (
         cleanKey === "youtubevideoid" ||
         cleanKey === "videoid" ||
@@ -138,7 +156,7 @@ export default function BulkImportSection({ onSuccess }) {
         const [label, ...fileIdParts] = part.split(":");
         return {
           label: String(label || "").trim(),
-          driveFileId: fileIdParts.join(":").trim(),
+          driveFileId: extractDriveId(fileIdParts.join(":").trim()),
         };
       })
       .filter((q) => q.label && q.driveFileId);
@@ -555,6 +573,57 @@ export default function BulkImportSection({ onSuccess }) {
     }
   };
 
+  // Perform bulk delete
+  const handleBulkDelete = async () => {
+    setIsDeleting(true);
+    setImportStatus({
+      type: "loading",
+      message: `Deleting all ${
+        importType === "drive"
+          ? "Drive videos"
+          : importType === "youtube"
+          ? "YouTube videos"
+          : "PDF documents"
+      }...`,
+    });
+
+    let endpoint = "";
+    if (importType === "drive") {
+      endpoint = "/videos/all";
+    } else if (importType === "youtube") {
+      endpoint = "/youtube/all";
+    } else if (importType === "pdf") {
+      endpoint = "/documents/all";
+    }
+
+    try {
+      const response = await API.delete(endpoint);
+      setImportStatus({
+        type: "success",
+        message: response.data.message || `Successfully deleted all items!`,
+      });
+
+      // Clear local states
+      setParsedData([]);
+      setFile(null);
+      setExistingDbIds(new Set());
+
+      setTimeout(() => {
+        if (onSuccess) onSuccess(importType);
+      }, 1500);
+
+    } catch (err) {
+      console.error(err);
+      setImportStatus({
+        type: "error",
+        message: err.response?.data?.message || err.message || "Bulk deletion failed.",
+      });
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   const validCount = parsedData.filter((r) => r.isValid).length;
   const invalidCount = parsedData.filter((r) => !r.isValid).length;
 
@@ -563,8 +632,8 @@ export default function BulkImportSection({ onSuccess }) {
       
       <div className="mb-6 flex flex-col justify-between gap-4 border-b app-border pb-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight">Bulk Import & Export</h1>
-          <p className="mt-1 text-sm app-muted">Upload an Excel spreadsheet with item details or export current items.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight">Bulk Actions</h1>
+          <p className="mt-1 text-sm app-muted">Import libraries via spreadsheet template, export current data, or wipe collections.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -581,6 +650,13 @@ export default function BulkImportSection({ onSuccess }) {
             className="rounded-xl btn-primary-blue px-4 py-2.5 text-sm font-bold shadow-md transition-all duration-300"
           >
             {isExporting ? "⏳ Exporting..." : "📤 Export Current Data"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="rounded-xl btn-primary-red px-4 py-2.5 text-sm font-bold shadow-md transition-all duration-300"
+          >
+            🗑️ Delete All {importType === "drive" ? "Drive" : importType === "youtube" ? "YouTube" : "PDF"} Content
           </button>
         </div>
       </div>
@@ -659,10 +735,10 @@ export default function BulkImportSection({ onSuccess }) {
         <div
           className={`mt-6 rounded-xl border p-4 text-sm font-medium transition-all ${
             importStatus.type === "success"
-              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
               : importStatus.type === "loading"
-              ? "bg-blue-500/10 text-blue-400 border-blue-500/20 animate-pulse"
-              : "bg-rose-500/10 text-rose-400 border-rose-500/20"
+              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 animate-pulse"
+              : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
           }`}
         >
           <div className="flex items-center gap-3">
@@ -700,11 +776,11 @@ export default function BulkImportSection({ onSuccess }) {
           <div className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <h2 className="text-xl font-bold">Import Data Preview ({parsedData.length} records found)</h2>
             <div className="flex gap-4 text-xs font-semibold">
-              <span className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-emerald-400 border border-emerald-500/20">
+              <span className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
                 ✅ {validCount} Ready to Import
               </span>
               {invalidCount > 0 && (
-                <span className="rounded-lg bg-rose-500/10 px-3 py-1.5 text-rose-400 border border-rose-500/20">
+                <span className="rounded-lg bg-rose-500/10 px-3 py-1.5 text-rose-600 dark:text-rose-400 border-rose-500/20">
                   ❌ {invalidCount} Invalid
                 </span>
               )}
@@ -713,7 +789,7 @@ export default function BulkImportSection({ onSuccess }) {
 
           <div className="max-h-[400px] overflow-auto rounded-xl border app-border">
             <table className="w-full text-left text-xs border-collapse">
-              <thead className="sticky top-0 bg-slate-900/90 text-slate-300 font-bold border-b app-border backdrop-blur-md">
+              <thead className="sticky top-0 bg-slate-100/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 font-bold border-b app-border backdrop-blur-md">
                 <tr>
                   <th className="p-3">#</th>
                   <th className="p-3">Status</th>
@@ -731,17 +807,17 @@ export default function BulkImportSection({ onSuccess }) {
                   <tr
                     key={row.id}
                     className={`hover:bg-slate-800/10 transition-colors ${
-                      row.isValid ? "" : "bg-rose-500/5 dark:bg-rose-950/10 text-rose-300"
+                      row.isValid ? "" : "bg-rose-500/5 dark:bg-rose-950/10 text-rose-600 dark:text-rose-300"
                     }`}
                   >
                     <td className="p-3 font-semibold">{row.id}</td>
                     <td className="p-3">
                       {row.isValid ? (
-                        <span className="rounded bg-emerald-500/10 px-2 py-0.5 font-bold text-[10px] text-emerald-400 border border-emerald-500/20">
+                        <span className="rounded bg-emerald-500/10 px-2 py-0.5 font-bold text-[10px] text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                           VALID
                         </span>
                       ) : (
-                        <span className="rounded bg-rose-500/10 px-2 py-0.5 font-bold text-[10px] text-rose-400 border border-rose-500/20">
+                        <span className="rounded bg-rose-500/10 px-2 py-0.5 font-bold text-[10px] text-rose-600 dark:text-rose-400 border border-rose-500/20">
                           INVALID
                         </span>
                       )}
@@ -754,7 +830,7 @@ export default function BulkImportSection({ onSuccess }) {
                     <td className="p-3 max-w-[100px] truncate">{row.data.subheading || "—"}</td>
                     <td className="p-3 max-w-[200px] text-xs app-muted whitespace-pre-line">
                       {row.isValid ? (
-                        <span className="text-emerald-400 font-medium">Ready</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-medium">Ready</span>
                       ) : (
                         row.errors.join("\n")
                       )}
@@ -787,6 +863,38 @@ export default function BulkImportSection({ onSuccess }) {
             >
               🚀 {isImporting ? "Importing..." : `Import ${validCount} Items`}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-fade-in">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10 app-panel shadow-2xl animate-scale-in transition-all p-6">
+            <h2 className="text-xl font-bold text-red-500 mb-2 flex items-center gap-2">
+              <span>⚠️</span> Confirm Bulk Deletion
+            </h2>
+            <p className="text-sm app-muted mb-6 leading-relaxed">
+              Are you sure you want to delete <strong>ALL</strong> {importType === "drive" ? "Google Drive videos" : importType === "youtube" ? "YouTube videos" : "PDF documents"} from the database? This action is permanent and cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="rounded-xl btn-secondary px-5 py-2.5 font-bold text-sm cursor-pointer"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                className="rounded-xl btn-primary-red px-5 py-2.5 font-bold text-sm cursor-pointer"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Yes, Delete All"}
+              </button>
+            </div>
           </div>
         </div>
       )}

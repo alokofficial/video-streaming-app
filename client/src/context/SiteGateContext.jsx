@@ -14,6 +14,7 @@ const STORAGE_KEY = "siteUnlocked";
 export const SiteGateProvider = ({ children }) => {
   const [gateEnabled, setGateEnabled] = useState(false);
   const [threeJsBackgroundEnabled, setThreeJsBackgroundEnabled] = useState(true);
+  const [fontFamily, setFontFamily] = useState("Inter");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -22,6 +23,7 @@ export const SiteGateProvider = ({ children }) => {
       const { data } = await API.get("/auth/site-gate");
       setGateEnabled(data.gateEnabled);
       setThreeJsBackgroundEnabled(data.threeJsBackgroundEnabled !== false);
+      setFontFamily(data.fontFamily || "Inter");
 
       if (!data.gateEnabled) {
         // Gate is off — always unlocked
@@ -44,6 +46,40 @@ export const SiteGateProvider = ({ children }) => {
     checkGate();
   }, []);
 
+  // Dynamically load Google Font and apply it to document root
+  useEffect(() => {
+    const fontName = fontFamily || "Inter";
+    const linkId = "dynamic-google-font";
+    let link = document.getElementById(linkId);
+    if (!link) {
+      link = document.createElement("link");
+      link.id = linkId;
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+
+    const ALLOWED_FONTS = [
+      "Inter",
+      "Outfit",
+      "Poppins",
+      "Roboto",
+      "Montserrat",
+      "Playfair Display",
+      "Lora",
+      "Fira Code",
+      "Plus Jakarta Sans",
+      "Space Grotesk",
+      "Syne",
+      "Cinzel",
+      "Lexend",
+    ];
+
+    if (ALLOWED_FONTS.includes(fontName)) {
+      link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontName)}:wght@300;400;500;600;700;800;900&display=swap`;
+      document.documentElement.style.setProperty("--font-family-app", `'${fontName}', sans-serif`);
+    }
+  }, [fontFamily]);
+
   const unlock = () => {
     sessionStorage.setItem(STORAGE_KEY, "true");
     setIsUnlocked(true);
@@ -53,12 +89,13 @@ export const SiteGateProvider = ({ children }) => {
     () => ({
       gateEnabled,
       threeJsBackgroundEnabled,
+      fontFamily,
       isUnlocked,
       isLoading,
       unlock,
       refreshSettings: checkGate,
     }),
-    [gateEnabled, threeJsBackgroundEnabled, isUnlocked, isLoading]
+    [gateEnabled, threeJsBackgroundEnabled, fontFamily, isUnlocked, isLoading]
   );
 
   return (

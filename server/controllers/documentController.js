@@ -2,6 +2,22 @@ import Document from "../models/Document.js";
 import driveService from "../config/googleDrive.js";
 import { logActivity } from "../utils/logger.js";
 
+const extractDriveId = (input) => {
+  if (!input) return "";
+  const trimmed = String(input).trim();
+  const fileDRegex = /\/d\/([a-zA-Z0-9_-]+)/;
+  const matchD = trimmed.match(fileDRegex);
+  if (matchD && matchD[1]) {
+    return matchD[1];
+  }
+  const idParamRegex = /[?&]id=([a-zA-Z0-9_-]+)/;
+  const matchId = trimmed.match(idParamRegex);
+  if (matchId && matchId[1]) {
+    return matchId[1];
+  }
+  return trimmed;
+};
+
 const metadataCache = new Map();
 const METADATA_CACHE_MS = 5 * 60 * 1000;
 
@@ -192,10 +208,12 @@ export const addDocument = async (req, res) => {
       allowedEmails,
     } = req.body;
 
-    const existingDoc = await Document.findOne({ driveFileId });
+    const cleanDriveFileId = extractDriveId(driveFileId);
+
+    const existingDoc = await Document.findOne({ driveFileId: cleanDriveFileId });
     if (existingDoc) {
       return res.status(400).json({
-        message: `A PDF Document with Google Drive File ID '${driveFileId}' already exists.`,
+        message: `A PDF Document with Google Drive File ID '${cleanDriveFileId}' already exists.`,
       });
     }
 
@@ -204,9 +222,18 @@ export const addDocument = async (req, res) => {
       description,
       category: String(category || "PDFs").trim() || "PDFs",
       subheading: String(subheading || "PDF").trim() || "PDF",
-      driveFileId,
+      driveFileId: cleanDriveFileId,
       thumbnail,
       allowedEmails: normalizeEmailList(allowedEmails),
+    });
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "CREATE_DOCUMENT",
+      details: `Added new PDF document: "${doc.title}"`,
+      req,
     });
 
     res.status(201).json(doc);
@@ -231,14 +258,16 @@ export const updateDocument = async (req, res) => {
       allowedEmails,
     } = req.body;
 
-    if (driveFileId) {
+    const cleanDriveFileId = driveFileId ? extractDriveId(driveFileId) : undefined;
+
+    if (cleanDriveFileId) {
       const existingDoc = await Document.findOne({
-        driveFileId,
+        driveFileId: cleanDriveFileId,
         _id: { $ne: req.params.id },
       });
       if (existingDoc) {
         return res.status(400).json({
-          message: `A PDF Document with Google Drive File ID '${driveFileId}' already exists.`,
+          message: `A PDF Document with Google Drive File ID '${cleanDriveFileId}' already exists.`,
         });
       }
     }
@@ -250,7 +279,7 @@ export const updateDocument = async (req, res) => {
         description,
         category: String(category || "PDFs").trim() || "PDFs",
         subheading: String(subheading || "PDF").trim() || "PDF",
-        driveFileId,
+        driveFileId: cleanDriveFileId,
         thumbnail,
         allowedEmails: normalizeEmailList(allowedEmails),
       },
@@ -265,6 +294,15 @@ export const updateDocument = async (req, res) => {
         message: "Document not found",
       });
     }
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "UPDATE_DOCUMENT",
+      details: `Updated PDF document: "${doc.title}"`,
+      req,
+    });
 
     res.json(doc);
   } catch (error) {
@@ -285,6 +323,15 @@ export const deleteDocument = async (req, res) => {
         message: "Document not found",
       });
     }
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "DELETE_DOCUMENT",
+      details: `Deleted PDF document: "${doc.title}"`,
+      req,
+    });
 
     res.json({
       message: "Document deleted successfully",
@@ -339,7 +386,7 @@ export const bulkAddDocuments = async (req, res) => {
         });
       }
 
-      const cleanDriveFileId = String(driveFileId).trim();
+      const cleanDriveFileId = extractDriveId(driveFileId);
 
       if (existingDriveIds.has(cleanDriveFileId)) {
         return res.status(400).json({
@@ -394,6 +441,31 @@ export const bulkAddDocuments = async (req, res) => {
     res.status(201).json({
       message: `Successfully imported ${createdDocs.length} PDF documents`,
       documents: createdDocs,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
+// DELETE ALL DOCUMENTS (ADMIN ONLY)
+export const deleteAllDocuments = async (req, res) => {
+  try {
+    const result = await Document.deleteMany({});
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "DELETE_ALL_DOCUMENTS",
+      details: `Deleted all PDF documents (${result.deletedCount} items)`,
+      req,
+    });
+
+    res.json({
+      message: `Successfully deleted all PDF documents (${result.deletedCount} items)`,
     });
   } catch (error) {
     console.error(error);

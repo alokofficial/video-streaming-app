@@ -15,6 +15,22 @@ import API from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useSiteGate } from "../context/SiteGateContext";
 
+const extractDriveId = (input) => {
+  if (!input) return "";
+  const trimmed = String(input).trim();
+  const fileDRegex = /\/d\/([a-zA-Z0-9_-]+)/;
+  const matchD = trimmed.match(fileDRegex);
+  if (matchD && matchD[1]) {
+    return matchD[1];
+  }
+  const idParamRegex = /[?&]id=([a-zA-Z0-9_-]+)/;
+  const matchId = trimmed.match(idParamRegex);
+  if (matchId && matchId[1]) {
+    return matchId[1];
+  }
+  return trimmed;
+};
+
 const getErrorMessage = (error) => {
   return (
     error.response?.data?.message ||
@@ -43,6 +59,7 @@ const getActionBadgeClass = (action) => {
       return "bg-indigo-500/10 text-indigo-500 border-indigo-500/20 dark:bg-indigo-500/5";
     case "VIEW_DRIVE_DOCUMENT":
       return "bg-teal-500/10 text-teal-500 border-teal-500/20 dark:bg-teal-500/5";
+    case "UPDATE_SITE_SETTINGS":
     case "CHANGE_GATE_SETTINGS":
       return "bg-amber-500/10 text-amber-500 border-amber-500/20 dark:bg-amber-500/5";
     case "CHANGE_PASSWORD":
@@ -51,6 +68,25 @@ const getActionBadgeClass = (action) => {
       return "bg-purple-500/10 text-purple-500 border-purple-500/20 dark:bg-purple-500/5";
     case "CLEAR_LOGS":
       return "bg-rose-500/10 text-rose-500 border-rose-500/20 dark:bg-rose-500/5";
+    case "CREATE_VIDEO":
+    case "CREATE_YOUTUBE":
+    case "CREATE_DOCUMENT":
+      return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 dark:bg-emerald-500/5";
+    case "UPDATE_VIDEO":
+    case "UPDATE_YOUTUBE":
+    case "UPDATE_DOCUMENT":
+      return "bg-sky-500/10 text-sky-500 border-sky-500/20 dark:bg-sky-500/5";
+    case "DELETE_VIDEO":
+    case "DELETE_YOUTUBE":
+    case "DELETE_DOCUMENT":
+    case "DELETE_ALL_VIDEOS":
+    case "DELETE_ALL_YOUTUBE_VIDEOS":
+    case "DELETE_ALL_DOCUMENTS":
+      return "bg-rose-500/10 text-rose-500 border-rose-500/20 dark:bg-rose-500/5";
+    case "BULK_IMPORT_VIDEOS":
+    case "BULK_IMPORT_YOUTUBE_VIDEOS":
+    case "BULK_IMPORT_DOCUMENTS":
+      return "bg-purple-500/10 text-purple-500 border-purple-500/20 dark:bg-purple-500/5";
     default:
       return "bg-slate-500/10 text-slate-500 border-slate-500/20 dark:bg-slate-500/5";
   }
@@ -96,7 +132,7 @@ export default function Admin() {
     subheading: "",
     driveFileId: "",
     thumbnail: DEFAULT_DRIVE_THUMBNAIL,
-    allowedEmails: "",
+    allowedEmails: [],
     qualities: "",
   };
 
@@ -180,7 +216,9 @@ export default function Admin() {
     useState(DEFAULT_DRIVE_THUMBNAIL);
 
   const [allowedEmails, setAllowedEmails] =
-    useState("");
+    useState([]);
+  const [driveEmailSearchQuery, setDriveEmailSearchQuery] = useState("");
+  const [isDriveEmailDropdownOpen, setIsDriveEmailDropdownOpen] = useState(false);
 
   const [qualities, setQualities] =
     useState("");
@@ -209,7 +247,9 @@ export default function Admin() {
   const [
     youtubeAllowedEmails,
     setYoutubeAllowedEmails,
-  ] = useState("");
+  ] = useState([]);
+  const [youtubeEmailSearchQuery, setYoutubeEmailSearchQuery] = useState("");
+  const [isYoutubeEmailDropdownOpen, setIsYoutubeEmailDropdownOpen] = useState(false);
 
   const [docTitle, setDocTitle] = useState("");
   const [docDescription, setDocDescription] = useState("");
@@ -218,12 +258,14 @@ export default function Admin() {
   const [docSubheading, setDocSubheading] = useState("PDF");
   const [docDriveFileId, setDocDriveFileId] = useState("");
   const [docThumbnail, setDocThumbnail] = useState(DEFAULT_PDF_THUMBNAIL);
-  const [docAllowedEmails, setDocAllowedEmails] = useState("");
+  const [docAllowedEmails, setDocAllowedEmails] = useState([]);
+  const [docEmailSearchQuery, setDocEmailSearchQuery] = useState("");
+  const [isDocEmailDropdownOpen, setIsDocEmailDropdownOpen] = useState(false);
   const [docSearchTerm, setDocSearchTerm] = useState("");
   const [docPage, setDocPage] = useState(1);
 
-  const [activeTab, setActiveTab] =
-    useState("content");
+  const [activeTab, setActiveTab] = useState("material");
+  const [materialSubTab, setMaterialSubTab] = useState("users");
 
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [userPage, setUserPage] = useState(1);
@@ -238,6 +280,7 @@ export default function Admin() {
   const { refreshSettings } = useSiteGate();
   const [gateEnabled, setGateEnabled] = useState(false);
   const [threeJsBackgroundEnabled, setThreeJsBackgroundEnabled] = useState(true);
+  const [selectedFont, setSelectedFont] = useState("Inter");
   const [gateHasPassword, setGateHasPassword] = useState(false);
   const [newGatePassword, setNewGatePassword] = useState("");
   const [confirmGatePassword, setConfirmGatePassword] = useState("");
@@ -254,6 +297,8 @@ export default function Admin() {
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [logsError, setLogsError] = useState("");
   const [logsMsg, setLogsMsg] = useState("");
+  const [logsSearchTerm, setLogsSearchTerm] = useState("");
+  const [logsActionType, setLogsActionType] = useState("ALL");
 
   const headingOptions = getUniqueHeadings([
     ...videos,
@@ -332,6 +377,7 @@ export default function Admin() {
       setGateEnabled(data.gateEnabled);
       setGateHasPassword(data.hasPassword);
       setThreeJsBackgroundEnabled(data.threeJsBackgroundEnabled !== false);
+      setSelectedFont(data.fontFamily || "Inter");
     } catch {
       // silently ignore
     } finally {
@@ -339,11 +385,13 @@ export default function Admin() {
     }
   }, []);
 
-  const fetchLogs = useCallback(async (page = 1) => {
+  const fetchLogs = useCallback(async (page = 1, search = "", actionType = "ALL") => {
     try {
       setIsLoadingLogs(true);
       setLogsError("");
-      const { data } = await API.get(`/auth/logs?page=${page}&limit=25`);
+      const { data } = await API.get(
+        `/auth/logs?page=${page}&limit=25&search=${encodeURIComponent(search)}&actionType=${encodeURIComponent(actionType)}`
+      );
       setLogs(data.logs);
       setLogsPage(data.page);
       setLogsPages(data.pages);
@@ -388,9 +436,23 @@ export default function Admin() {
 
   useEffect(() => {
     if (activeTab === "logs") {
-      fetchLogs(logsPage);
+      fetchLogs(logsPage, logsSearchTerm, logsActionType);
     }
-  }, [activeTab, logsPage, fetchLogs]);
+  }, [activeTab, logsPage, logsSearchTerm, logsActionType, fetchLogs]);
+
+  useEffect(() => {
+    if (activeTab === "settings") {
+      const linkId = "admin-preview-fonts";
+      let link = document.getElementById(linkId);
+      if (!link) {
+        link = document.createElement("link");
+        link.id = linkId;
+        link.rel = "stylesheet";
+        link.href = "https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Fira+Code&family=Inter:wght@400;700&family=Lexend:wght@400;700&family=Lora:ital@0;1&family=Montserrat:wght@400;700&family=Outfit:wght@400;700&family=Playfair+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;700&family=Poppins:wght@400;700&family=Roboto:wght@400;700&family=Space+Grotesk:wght@400;700&family=Syne:wght@400;700&display=swap";
+        document.head.appendChild(link);
+      }
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     fetchVideos();
@@ -409,6 +471,8 @@ export default function Admin() {
     setDriveFileId(emptyForm.driveFileId);
     setThumbnail(emptyForm.thumbnail);
     setAllowedEmails(emptyForm.allowedEmails);
+    setDriveEmailSearchQuery("");
+    setIsDriveEmailDropdownOpen(false);
     setQualities(emptyForm.qualities);
     setEditingVideoId(null);
   };
@@ -420,26 +484,18 @@ export default function Admin() {
     setYoutubeCategoryInputMode("existing");
     setYoutubeSubheading("");
     setYoutubeThumbnail(DEFAULT_YOUTUBE_THUMBNAIL);
-    setYoutubeAllowedEmails("");
+    setYoutubeAllowedEmails([]);
+    setYoutubeEmailSearchQuery("");
+    setIsYoutubeEmailDropdownOpen(false);
     setEditingYoutubeVideoId(null);
   };
 
   const parseAllowedEmails = () => {
-    return allowedEmails
-      .split(/[,\n]/)
-      .map((email) =>
-        email.trim().toLowerCase()
-      )
-      .filter(Boolean);
+    return allowedEmails;
   };
 
   const parseYoutubeAllowedEmails = () => {
-    return youtubeAllowedEmails
-      .split(/[,\n]/)
-      .map((email) =>
-        email.trim().toLowerCase()
-      )
-      .filter(Boolean);
+    return youtubeAllowedEmails;
   };
 
   const parseQualities = () => {
@@ -562,7 +618,8 @@ export default function Admin() {
       resetForm();
       fetchVideos();
       fetchUsers();
-      setActiveTab("content");
+      setActiveTab("material");
+      setMaterialSubTab("content");
 
     } catch (error) {
 
@@ -602,7 +659,8 @@ export default function Admin() {
 
       resetYoutubeForm();
       fetchYoutubeVideos();
-      setActiveTab("youtube");
+      setActiveTab("material");
+      setMaterialSubTab("youtube");
     } catch (error) {
       console.log(error);
       alert(getErrorMessage(error));
@@ -627,7 +685,7 @@ export default function Admin() {
       video.thumbnail || DEFAULT_DRIVE_THUMBNAIL
     );
     setAllowedEmails(
-      (video.allowedEmails || []).join(", ")
+      video.allowedEmails || []
     );
     setQualities(
       (video.qualities || [])
@@ -648,15 +706,15 @@ export default function Admin() {
     setYoutubeCategoryInputMode(
       video.category &&
         !headingOptions.includes(video.category)
-        ? "other"
-        : "existing"
+          ? "other"
+          : "existing"
     );
     setYoutubeSubheading(video.subheading || "");
     setYoutubeThumbnail(
       video.thumbnail || DEFAULT_YOUTUBE_THUMBNAIL
     );
     setYoutubeAllowedEmails(
-      (video.allowedEmails || []).join(", ")
+      video.allowedEmails || []
     );
   };
 
@@ -733,17 +791,14 @@ export default function Admin() {
     setDocSubheading("PDF");
     setDocDriveFileId("");
     setDocThumbnail(DEFAULT_PDF_THUMBNAIL);
-    setDocAllowedEmails("");
+    setDocAllowedEmails([]);
+    setDocEmailSearchQuery("");
+    setIsDocEmailDropdownOpen(false);
     setEditingDocumentId(null);
   };
 
   const parseDocAllowedEmails = () => {
-    return docAllowedEmails
-      .split(/[,\n]/)
-      .map((email) =>
-        email.trim().toLowerCase()
-      )
-      .filter(Boolean);
+    return docAllowedEmails;
   };
 
   const handleDocSubmit = async (e) => {
@@ -775,7 +830,8 @@ export default function Admin() {
 
       resetDocForm();
       fetchDocuments();
-      setActiveTab("documentsList");
+      setActiveTab("material");
+      setMaterialSubTab("documentsList");
     } catch (error) {
       console.log(error);
       alert(getErrorMessage(error));
@@ -800,7 +856,7 @@ export default function Admin() {
       doc.thumbnail || DEFAULT_PDF_THUMBNAIL
     );
     setDocAllowedEmails(
-      (doc.allowedEmails || []).join(", ")
+      doc.allowedEmails || []
     );
   };
 
@@ -897,92 +953,94 @@ export default function Admin() {
 
         <div className="mb-6 flex gap-3 overflow-x-auto scrollbar-hide border-b app-border pb-4 sm:mb-8 sm:gap-4">
           <button
-            onClick={() => setActiveTab("users")}
-            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "users" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
+            onClick={() => setActiveTab("material")}
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base cursor-pointer ${
+              activeTab === "material" || ["videoForm", "youtubeForm", "docForm"].includes(activeTab)
+                ? "text-red-500 border-b-2 border-red-500 font-bold"
+                : "app-muted hover:text-white"
             }`}
           >
-            Manage Users
-          </button>
-          <button
-            onClick={() => setActiveTab("content")}
-            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "content" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
-            }`}
-          >
-            Manage Content
-          </button>
-          <button
-            onClick={() => setActiveTab("youtube")}
-            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "youtube" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
-            }`}
-          >
-            Manage YouTube
-          </button>
-          <button
-            onClick={() => { setActiveTab("documentsList"); setDocPage(1); }}
-            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "documentsList" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
-            }`}
-          >
-            Manage PDFs
-          </button>
-          <button
-            onClick={() => { setActiveTab("videoForm"); resetForm(); }}
-            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "videoForm" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
-            }`}
-          >
-            {editingVideoId ? "Edit Video" : "Add Video"}
+            Manage (Contents/Users)
           </button>
           <button
             onClick={() => setActiveTab("bulkImport")}
-            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "bulkImport" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base cursor-pointer ${
+              activeTab === "bulkImport" ? "text-red-500 border-b-2 border-red-500 font-bold" : "app-muted hover:text-white"
             }`}
           >
-            Bulk Import
-          </button>
-          <button
-            onClick={() => { setActiveTab("youtubeForm"); resetYoutubeForm(); }}
-            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "youtubeForm" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
-            }`}
-          >
-            {editingYoutubeVideoId
-              ? "Edit YouTube"
-              : "Add YouTube"}
-          </button>
-          <button
-            onClick={() => { setActiveTab("docForm"); resetDocForm(); }}
-            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "docForm" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
-            }`}
-          >
-            {editingDocumentId ? "Edit PDF" : "Add PDF"}
+            Bulk Actions
           </button>
           <button
             onClick={() => setActiveTab("settings")}
-            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "settings" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base cursor-pointer ${
+              activeTab === "settings" ? "text-red-500 border-b-2 border-red-500 font-bold" : "app-muted hover:text-white"
             }`}
           >
             ⚙️ Settings
           </button>
           <button
             onClick={() => { setActiveTab("logs"); setLogsPage(1); }}
-            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base ${
-              activeTab === "logs" ? "text-red-500 border-b-2 border-red-500" : "app-muted hover:text-white"
+            className={`shrink-0 px-3 py-2 text-sm font-semibold transition-colors sm:px-4 sm:text-base cursor-pointer ${
+              activeTab === "logs" ? "text-red-500 border-b-2 border-red-500 font-bold" : "app-muted hover:text-white"
             }`}
           >
             📋 Activity Logs
           </button>
         </div>
 
-        {activeTab === "users" && (
-        <div className="mb-8">
-          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        {activeTab === "material" && (
+          <div className="mb-8 animate-fade-in">
+            {/* Sub-tab segment selector */}
+            <div className="mb-6 flex gap-2 rounded-xl bg-slate-100 dark:bg-black/40 p-1 border border-slate-200/50 dark:border-white/5 max-w-xl">
+              <button
+                type="button"
+                onClick={() => setMaterialSubTab("users")}
+                className={`flex-1 rounded-lg py-2.5 text-sm font-bold tracking-wide transition-all cursor-pointer ${
+                  materialSubTab === "users"
+                    ? "bg-white dark:bg-slate-800 text-red-500 shadow-sm"
+                    : "app-muted hover:text-white"
+                }`}
+              >
+                👥 Users
+              </button>
+              <button
+                type="button"
+                onClick={() => setMaterialSubTab("content")}
+                className={`flex-1 rounded-lg py-2.5 text-sm font-bold tracking-wide transition-all cursor-pointer ${
+                  materialSubTab === "content"
+                    ? "bg-white dark:bg-slate-800 text-red-500 shadow-sm"
+                    : "app-muted hover:text-white"
+                }`}
+              >
+                📹 Drive Videos
+              </button>
+              <button
+                type="button"
+                onClick={() => setMaterialSubTab("youtube")}
+                className={`flex-1 rounded-lg py-2.5 text-sm font-bold tracking-wide transition-all cursor-pointer ${
+                  materialSubTab === "youtube"
+                    ? "bg-white dark:bg-slate-800 text-red-500 shadow-sm"
+                    : "app-muted hover:text-white"
+                }`}
+              >
+                🔴 YouTube
+              </button>
+              <button
+                type="button"
+                onClick={() => setMaterialSubTab("documentsList")}
+                className={`flex-1 rounded-lg py-2.5 text-sm font-bold tracking-wide transition-all cursor-pointer ${
+                  materialSubTab === "documentsList"
+                    ? "bg-white dark:bg-slate-800 text-red-500 shadow-sm"
+                    : "app-muted hover:text-white"
+                }`}
+              >
+                📄 PDFs
+              </button>
+            </div>
+
+            {materialSubTab === "users" && (
+            <div className="mb-8">
+              <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-2xl font-bold sm:text-3xl">
               Manage Users
             </h2>
@@ -1198,21 +1256,30 @@ export default function Admin() {
         </div>
         )}
 
-        {activeTab === "content" && (
-        <div className="mb-8">
-          <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-2xl font-bold sm:text-3xl">
-              Manage Content
-            </h2>
+        {materialSubTab === "content" && (
+      <div className="mb-8">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-2xl font-bold sm:text-3xl">
+            Manage Drive Videos
+          </h2>
 
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={fetchVideos}
-              className="w-full rounded app-soft-surface px-4 py-2 font-semibold sm:w-auto"
+              className="rounded-xl app-soft-surface px-4 py-2 font-semibold cursor-pointer"
             >
               Refresh
             </button>
+            <button
+              type="button"
+              onClick={() => { setActiveTab("videoForm"); resetForm(); }}
+              className="rounded-xl btn-primary-red px-4 py-2 font-bold cursor-pointer transition-all duration-200"
+            >
+              ➕ Add Video
+            </button>
           </div>
+        </div>
 
           {isLoadingVideos && (
             <p className="app-muted">
@@ -1350,20 +1417,29 @@ export default function Admin() {
         </div>
         )}
 
-        {activeTab === "youtube" && (
+        {materialSubTab === "youtube" && (
           <div className="mb-8">
             <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-2xl font-bold sm:text-3xl">
                 Manage YouTube Videos
               </h2>
 
-              <button
-                type="button"
-                onClick={fetchYoutubeVideos}
-                className="w-full rounded app-soft-surface px-4 py-2 font-semibold sm:w-auto"
-              >
-                Refresh
-              </button>
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={fetchYoutubeVideos}
+                  className="rounded-xl app-soft-surface px-4 py-2 font-semibold cursor-pointer"
+                >
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab("youtubeForm"); resetYoutubeForm(); }}
+                  className="rounded-xl btn-primary-red px-4 py-2 font-bold cursor-pointer transition-all duration-200"
+                >
+                  ➕ Add YouTube Video
+                </button>
+              </div>
             </div>
 
             {isLoadingYoutubeVideos && (
@@ -1487,20 +1563,29 @@ export default function Admin() {
           </div>
         )}
 
-        {activeTab === "documentsList" && (
+        {materialSubTab === "documentsList" && (
           <div className="mb-8">
             <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-2xl font-bold sm:text-3xl">
                 Manage PDFs / Documents
               </h2>
 
-              <button
-                type="button"
-                onClick={fetchDocuments}
-                className="w-full rounded app-soft-surface px-4 py-2 font-semibold sm:w-auto"
-              >
-                Refresh
-              </button>
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={fetchDocuments}
+                  className="rounded-xl app-soft-surface px-4 py-2 font-semibold cursor-pointer"
+                >
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab("docForm"); resetDocForm(); }}
+                  className="rounded-xl btn-primary-red px-4 py-2 font-bold cursor-pointer transition-all duration-200"
+                >
+                  ➕ Add PDF
+                </button>
+              </div>
             </div>
 
             {isLoadingDocuments && (
@@ -1626,18 +1711,27 @@ export default function Admin() {
             )}
           </div>
         )}
+        </div>
+      )}
 
         {activeTab === "videoForm" && (
-        <form
-          onSubmit={handleSubmit}
-          className="mx-auto max-w-xl rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 sm:p-8 shadow-2xl backdrop-blur-lg bg-white/80 dark:bg-black/30"
-        >
-
-          <h1 className="mb-6 text-3xl font-extrabold tracking-tight">
-            {editingVideoId
-              ? "Edit Video"
-              : "Add Video"}
-          </h1>
+        <div className="mx-auto max-w-xl">
+          <button
+            type="button"
+            onClick={() => { resetForm(); setActiveTab("material"); setMaterialSubTab("content"); }}
+            className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-400 hover:text-white transition cursor-pointer"
+          >
+            ← Back to Material List
+          </button>
+          <form
+            onSubmit={handleSubmit}
+            className="rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 sm:p-8 shadow-2xl backdrop-blur-lg bg-white/80 dark:bg-black/30"
+          >
+            <h1 className="mb-6 text-3xl font-extrabold tracking-tight">
+              {editingVideoId
+                ? "Edit Video"
+                : "Add Video"}
+            </h1>
 
           <div className="mb-4">
             <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
@@ -1759,7 +1853,7 @@ export default function Admin() {
               className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
               value={driveFileId}
               onChange={(e) =>
-                setDriveFileId(e.target.value)
+                setDriveFileId(extractDriveId(e.target.value))
               }
             />
             <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
@@ -1783,19 +1877,116 @@ export default function Admin() {
             />
           </div>
 
-          <div className="mb-4">
+          <div className="mb-4 relative">
             <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
-              Visible To Email IDs (comma-separated)
+              Visible To Email IDs (Optional)
             </label>
-            <textarea
-              placeholder="e.g. user1@example.com, user2@example.com. Leave blank for public access."
-              rows="2"
-              className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-              value={allowedEmails}
-              onChange={(e) =>
-                setAllowedEmails(e.target.value)
-              }
-            />
+
+            {/* Selected Email Pills Container */}
+            <div className="min-h-[46px] w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-2 flex flex-wrap gap-1.5 items-center transition-all duration-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20">
+              {allowedEmails.map((email) => (
+                <span
+                  key={email}
+                  className="inline-flex items-center gap-1 rounded bg-red-600/20 border border-red-500/30 px-2.5 py-0.5 text-xs text-red-300 font-medium animate-fade-in"
+                >
+                  {email}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAllowedEmails(allowedEmails.filter(e => e !== email));
+                    }}
+                    className="text-[10px] text-red-400 hover:text-red-200 transition font-bold cursor-pointer"
+                  >
+                    x
+                  </button>
+                </span>
+              ))}
+              <input
+                type="text"
+                placeholder={allowedEmails.length === 0 ? "Select or type email..." : ""}
+                value={driveEmailSearchQuery}
+                onChange={(e) => {
+                  setDriveEmailSearchQuery(e.target.value);
+                  setIsDriveEmailDropdownOpen(true);
+                }}
+                onFocus={() => setIsDriveEmailDropdownOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault();
+                    const val = driveEmailSearchQuery.trim().toLowerCase();
+                    if (val && !allowedEmails.includes(val)) {
+                      setAllowedEmails([...allowedEmails, val]);
+                      setDriveEmailSearchQuery("");
+                    }
+                  }
+                }}
+                className="flex-1 min-w-[120px] bg-transparent text-sm text-white outline-none border-none p-0.5"
+              />
+            </div>
+
+            {/* Dropdown Menu */}
+            {isDriveEmailDropdownOpen && (
+              <>
+                {/* Invisible overlay to close dropdown on outside click */}
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setIsDriveEmailDropdownOpen(false)}
+                />
+                <ul className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700/80 bg-slate-950 p-1 shadow-xl z-20 scrollbar-hide space-y-0.5">
+                  {/* Manual Add option */}
+                  {driveEmailSearchQuery.trim() && !allowedEmails.includes(driveEmailSearchQuery.trim().toLowerCase()) && (
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = driveEmailSearchQuery.trim().toLowerCase();
+                          setAllowedEmails([...allowedEmails, val]);
+                          setDriveEmailSearchQuery("");
+                        }}
+                        className="w-full text-left rounded px-3 py-2 text-xs font-semibold text-red-400 hover:bg-white/5 transition cursor-pointer"
+                      >
+                        Add custom email: "{driveEmailSearchQuery.trim()}"
+                      </button>
+                    </li>
+                  )}
+
+                  {/* Filtered users list */}
+                  {users
+                    .filter(u => {
+                      const email = u.email?.toLowerCase() || "";
+                      const matchesSearch = email.includes(driveEmailSearchQuery.toLowerCase());
+                      const isAlreadySelected = allowedEmails.includes(email);
+                      return matchesSearch && !isAlreadySelected;
+                    })
+                    .map(u => (
+                      <li key={u.id || u.email}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAllowedEmails([...allowedEmails, u.email.toLowerCase()]);
+                            setDriveEmailSearchQuery("");
+                          }}
+                          className="w-full text-left rounded px-3 py-2 text-sm text-white hover:bg-red-600/10 hover:text-red-400 transition cursor-pointer"
+                        >
+                          <div className="font-semibold">{u.name}</div>
+                          <div className="text-xs text-slate-400">{u.email}</div>
+                        </button>
+                      </li>
+                    ))
+                  }
+
+                  {/* Empty state */}
+                  {users.filter(u => {
+                    const email = u.email?.toLowerCase() || "";
+                    return email.includes(driveEmailSearchQuery.toLowerCase()) && !allowedEmails.includes(email);
+                  }).length === 0 && !driveEmailSearchQuery.trim() && (
+                    <li className="px-3 py-2 text-xs text-slate-500 text-center">
+                      No users available to select
+                    </li>
+                  )}
+                </ul>
+              </>
+            )}
           </div>
 
           <div className="mb-6">
@@ -1825,7 +2016,7 @@ export default function Admin() {
           {editingVideoId && (
             <button
               type="button"
-              onClick={() => { resetForm(); setActiveTab("content"); }}
+              onClick={() => { resetForm(); setActiveTab("material"); setMaterialSubTab("content"); }}
               className="mt-3 w-full rounded-xl btn-secondary p-3.5 font-bold tracking-wide"
             >
               Cancel Edit
@@ -1833,6 +2024,7 @@ export default function Admin() {
           )}
 
         </form>
+        </div>
         )}
 
         {activeTab === "bulkImport" && (
@@ -1840,13 +2032,16 @@ export default function Admin() {
             onSuccess={(type) => {
               if (type === "youtube") {
                 fetchYoutubeVideos();
-                setActiveTab("youtube");
+                setActiveTab("material");
+                setMaterialSubTab("youtube");
               } else if (type === "pdf") {
                 fetchDocuments();
-                setActiveTab("documentsList");
+                setActiveTab("material");
+                setMaterialSubTab("documentsList");
               } else {
                 fetchVideos();
-                setActiveTab("content");
+                setActiveTab("material");
+                setMaterialSubTab("content");
               }
               fetchUsers();
             }}
@@ -1854,9 +2049,17 @@ export default function Admin() {
         )}
 
         {activeTab === "youtubeForm" && (
+        <div className="mx-auto max-w-xl">
+          <button
+            type="button"
+            onClick={() => { resetYoutubeForm(); setActiveTab("material"); setMaterialSubTab("youtube"); }}
+            className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-400 hover:text-white transition cursor-pointer"
+          >
+            ← Back to Material List
+          </button>
           <form
             onSubmit={handleYoutubeSubmit}
-            className="mx-auto max-w-xl rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 sm:p-8 shadow-2xl backdrop-blur-lg bg-white/80 dark:bg-black/30"
+            className="rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 sm:p-8 shadow-2xl backdrop-blur-lg bg-white/80 dark:bg-black/30"
           >
             <h1 className="mb-6 text-3xl font-extrabold tracking-tight">
               {editingYoutubeVideoId
@@ -1992,21 +2195,116 @@ export default function Admin() {
               />
             </div>
 
-            <div className="mb-6">
+            <div className="mb-6 relative">
               <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
-                Visible To Email IDs (comma-separated)
+                Visible To Email IDs (Optional)
               </label>
-              <textarea
-                placeholder="e.g. user1@example.com, user2@example.com. Leave blank for public access."
-                rows="2"
-                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                value={youtubeAllowedEmails}
-                onChange={(e) =>
-                  setYoutubeAllowedEmails(
-                    e.target.value
-                  )
-                }
-              />
+
+              {/* Selected Email Pills Container */}
+              <div className="min-h-[46px] w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-2 flex flex-wrap gap-1.5 items-center transition-all duration-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20">
+                {youtubeAllowedEmails.map((email) => (
+                  <span
+                    key={email}
+                    className="inline-flex items-center gap-1 rounded bg-red-600/20 border border-red-500/30 px-2.5 py-0.5 text-xs text-red-300 font-medium animate-fade-in"
+                  >
+                    {email}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setYoutubeAllowedEmails(youtubeAllowedEmails.filter(e => e !== email));
+                      }}
+                      className="text-[10px] text-red-400 hover:text-red-200 transition font-bold cursor-pointer"
+                    >
+                      x
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  placeholder={youtubeAllowedEmails.length === 0 ? "Select or type email..." : ""}
+                  value={youtubeEmailSearchQuery}
+                  onChange={(e) => {
+                    setYoutubeEmailSearchQuery(e.target.value);
+                    setIsYoutubeEmailDropdownOpen(true);
+                  }}
+                  onFocus={() => setIsYoutubeEmailDropdownOpen(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === ",") {
+                      e.preventDefault();
+                      const val = youtubeEmailSearchQuery.trim().toLowerCase();
+                      if (val && !youtubeAllowedEmails.includes(val)) {
+                        setYoutubeAllowedEmails([...youtubeAllowedEmails, val]);
+                        setYoutubeEmailSearchQuery("");
+                      }
+                    }
+                  }}
+                  className="flex-1 min-w-[120px] bg-transparent text-sm text-white outline-none border-none p-0.5"
+                />
+              </div>
+
+              {/* Dropdown Menu */}
+              {isYoutubeEmailDropdownOpen && (
+                <>
+                  {/* Invisible overlay to close dropdown on outside click */}
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setIsYoutubeEmailDropdownOpen(false)}
+                  />
+                  <ul className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700/80 bg-slate-950 p-1 shadow-xl z-20 scrollbar-hide space-y-0.5">
+                    {/* Manual Add option */}
+                    {youtubeEmailSearchQuery.trim() && !youtubeAllowedEmails.includes(youtubeEmailSearchQuery.trim().toLowerCase()) && (
+                      <li>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = youtubeEmailSearchQuery.trim().toLowerCase();
+                            setYoutubeAllowedEmails([...youtubeAllowedEmails, val]);
+                            setYoutubeEmailSearchQuery("");
+                          }}
+                          className="w-full text-left rounded px-3 py-2 text-xs font-semibold text-red-400 hover:bg-white/5 transition cursor-pointer"
+                        >
+                          Add custom email: "{youtubeEmailSearchQuery.trim()}"
+                        </button>
+                      </li>
+                    )}
+
+                    {/* Filtered users list */}
+                    {users
+                      .filter(u => {
+                        const email = u.email?.toLowerCase() || "";
+                        const matchesSearch = email.includes(youtubeEmailSearchQuery.toLowerCase());
+                        const isAlreadySelected = youtubeAllowedEmails.includes(email);
+                        return matchesSearch && !isAlreadySelected;
+                      })
+                      .map(u => (
+                        <li key={u.id || u.email}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setYoutubeAllowedEmails([...youtubeAllowedEmails, u.email.toLowerCase()]);
+                              setYoutubeEmailSearchQuery("");
+                            }}
+                            className="w-full text-left rounded px-3 py-2 text-sm text-white hover:bg-red-600/10 hover:text-red-400 transition cursor-pointer"
+                          >
+                            <div className="font-semibold">{u.name}</div>
+                            <div className="text-xs text-slate-400">{u.email}</div>
+                          </button>
+                        </li>
+                      ))
+                    }
+
+                    {/* Empty state */}
+                    {users.filter(u => {
+                      const email = u.email?.toLowerCase() || "";
+                      return email.includes(youtubeEmailSearchQuery.toLowerCase()) && !youtubeAllowedEmails.includes(email);
+                    }).length === 0 && !youtubeEmailSearchQuery.trim() && (
+                      <li className="px-3 py-2 text-xs text-slate-500 text-center">
+                        No users available to select
+                      </li>
+                    )}
+                  </ul>
+                </>
+              )}
             </div>
 
             <button
@@ -2023,7 +2321,8 @@ export default function Admin() {
                 type="button"
                 onClick={() => {
                   resetYoutubeForm();
-                  setActiveTab("youtube");
+                  setActiveTab("material");
+                  setMaterialSubTab("youtube");
                 }}
                 className="mt-3 w-full rounded-xl btn-secondary p-3.5 font-bold tracking-wide"
               >
@@ -2031,12 +2330,21 @@ export default function Admin() {
               </button>
             )}
           </form>
+        </div>
         )}
 
         {activeTab === "docForm" && (
+        <div className="mx-auto max-w-xl">
+          <button
+            type="button"
+            onClick={() => { resetDocForm(); setActiveTab("material"); setMaterialSubTab("documentsList"); }}
+            className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-400 hover:text-white transition cursor-pointer"
+          >
+            ← Back to Material List
+          </button>
           <form
             onSubmit={handleDocSubmit}
-            className="mx-auto max-w-xl rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 sm:p-8 shadow-2xl backdrop-blur-lg bg-white/80 dark:bg-black/30"
+            className="rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 sm:p-8 shadow-2xl backdrop-blur-lg bg-white/80 dark:bg-black/30"
           >
             <h1 className="mb-6 text-3xl font-extrabold tracking-tight">
               {editingDocumentId
@@ -2093,7 +2401,7 @@ export default function Admin() {
                 className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                 value={docDriveFileId}
                 onChange={(e) =>
-                  setDocDriveFileId(e.target.value)
+                  setDocDriveFileId(extractDriveId(e.target.value))
                 }
               />
               <p className="mt-1.5 text-right text-[11px] font-medium app-muted">
@@ -2193,21 +2501,116 @@ export default function Admin() {
               />
             </div>
 
-            <div className="mb-6">
+            <div className="mb-6 relative">
               <label className="mb-2 block text-xs font-bold uppercase tracking-wider app-muted">
-                Visible To Email IDs (comma-separated)
+                Visible To Email IDs (Optional)
               </label>
-              <textarea
-                placeholder="e.g. user1@example.com, user2@example.com. Leave blank for public access."
-                rows="2"
-                className="w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-3 outline-none transition-all duration-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
-                value={docAllowedEmails}
-                onChange={(e) =>
-                  setDocAllowedEmails(
-                    e.target.value
-                  )
-                }
-              />
+
+              {/* Selected Email Pills Container */}
+              <div className="min-h-[46px] w-full rounded-xl border border-slate-300 dark:border-white/10 app-soft-surface p-2 flex flex-wrap gap-1.5 items-center transition-all duration-300 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-500/20">
+                {docAllowedEmails.map((email) => (
+                  <span
+                    key={email}
+                    className="inline-flex items-center gap-1 rounded bg-red-600/20 border border-red-500/30 px-2.5 py-0.5 text-xs text-red-300 font-medium animate-fade-in"
+                  >
+                    {email}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDocAllowedEmails(docAllowedEmails.filter(e => e !== email));
+                      }}
+                      className="text-[10px] text-red-400 hover:text-red-200 transition font-bold cursor-pointer"
+                    >
+                      x
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  placeholder={docAllowedEmails.length === 0 ? "Select or type email..." : ""}
+                  value={docEmailSearchQuery}
+                  onChange={(e) => {
+                    setDocEmailSearchQuery(e.target.value);
+                    setIsDocEmailDropdownOpen(true);
+                  }}
+                  onFocus={() => setIsDocEmailDropdownOpen(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === ",") {
+                      e.preventDefault();
+                      const val = docEmailSearchQuery.trim().toLowerCase();
+                      if (val && !docAllowedEmails.includes(val)) {
+                        setDocAllowedEmails([...docAllowedEmails, val]);
+                        setDocEmailSearchQuery("");
+                      }
+                    }
+                  }}
+                  className="flex-1 min-w-[120px] bg-transparent text-sm text-white outline-none border-none p-0.5"
+                />
+              </div>
+
+              {/* Dropdown Menu */}
+              {isDocEmailDropdownOpen && (
+                <>
+                  {/* Invisible overlay to close dropdown on outside click */}
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setIsDocEmailDropdownOpen(false)}
+                  />
+                  <ul className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-700/80 bg-slate-950 p-1 shadow-xl z-20 scrollbar-hide space-y-0.5">
+                    {/* Manual Add option */}
+                    {docEmailSearchQuery.trim() && !docAllowedEmails.includes(docEmailSearchQuery.trim().toLowerCase()) && (
+                      <li>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const val = docEmailSearchQuery.trim().toLowerCase();
+                            setDocAllowedEmails([...docAllowedEmails, val]);
+                            setDocEmailSearchQuery("");
+                          }}
+                          className="w-full text-left rounded px-3 py-2 text-xs font-semibold text-red-400 hover:bg-white/5 transition cursor-pointer"
+                        >
+                          Add custom email: "{docEmailSearchQuery.trim()}"
+                        </button>
+                      </li>
+                    )}
+
+                    {/* Filtered users list */}
+                    {users
+                      .filter(u => {
+                        const email = u.email?.toLowerCase() || "";
+                        const matchesSearch = email.includes(docEmailSearchQuery.toLowerCase());
+                        const isAlreadySelected = docAllowedEmails.includes(email);
+                        return matchesSearch && !isAlreadySelected;
+                      })
+                      .map(u => (
+                        <li key={u.id || u.email}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDocAllowedEmails([...docAllowedEmails, u.email.toLowerCase()]);
+                              setDocEmailSearchQuery("");
+                            }}
+                            className="w-full text-left rounded px-3 py-2 text-sm text-white hover:bg-red-600/10 hover:text-red-400 transition cursor-pointer"
+                          >
+                            <div className="font-semibold">{u.name}</div>
+                            <div className="text-xs text-slate-400">{u.email}</div>
+                          </button>
+                        </li>
+                      ))
+                    }
+
+                    {/* Empty state */}
+                    {users.filter(u => {
+                      const email = u.email?.toLowerCase() || "";
+                      return email.includes(docEmailSearchQuery.toLowerCase()) && !docAllowedEmails.includes(email);
+                    }).length === 0 && !docEmailSearchQuery.trim() && (
+                      <li className="px-3 py-2 text-xs text-slate-500 text-center">
+                        No users available to select
+                      </li>
+                    )}
+                  </ul>
+                </>
+              )}
             </div>
 
             <button
@@ -2224,7 +2627,8 @@ export default function Admin() {
                 type="button"
                 onClick={() => {
                   resetDocForm();
-                  setActiveTab("documentsList");
+                  setActiveTab("material");
+                  setMaterialSubTab("documentsList");
                 }}
                 className="mt-3 w-full rounded-xl btn-secondary p-3.5 font-bold tracking-wide"
               >
@@ -2232,16 +2636,39 @@ export default function Admin() {
               </button>
             )}
           </form>
+        </div>
         )}
 
-        {/* Site Gate Settings Tab */}
+        {/* Site Settings Tab */}
         {activeTab === "settings" && (
-          <div className="mb-8 max-w-xl">
-            <h2 className="text-2xl font-bold sm:text-3xl mb-2">Site Access Gate</h2>
-            <p className="app-muted text-sm mb-6">
-              When enabled, all visitors must enter a secret access code before they can reach the login or register page.
-              The password is stored securely as a bcrypt hash.
-            </p>
+          <div className="space-y-8 animate-fade-in">
+            {/* Header */}
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight">System Settings</h1>
+              <p className="mt-1 text-sm app-muted">Configure access controls, website typography, and visual effects.</p>
+            </div>
+
+            {/* Error / Success Alerts */}
+            {(gateError || gateMsg) && (
+              <div className="max-w-xl">
+                {gateError && (
+                  <div className="mb-4 flex items-center gap-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-4 text-sm text-rose-700 dark:text-rose-300 font-medium">
+                    <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    {gateError}
+                  </div>
+                )}
+                {gateMsg && (
+                  <div className="mb-4 flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-4 text-sm text-emerald-700 dark:text-emerald-300 font-medium">
+                    <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {gateMsg}
+                  </div>
+                )}
+              </div>
+            )}
 
             {gateLoading ? (
               <div className="flex items-center gap-3 text-sm app-muted">
@@ -2249,181 +2676,234 @@ export default function Admin() {
                 Loading settings…
               </div>
             ) : (
-              <div className="rounded-2xl border app-border bg-white/5 dark:bg-black/20 p-6 shadow-lg space-y-6">
-
-                {/* Status indicator */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-sm">Gate Status</p>
-                    <p className="text-xs app-muted mt-0.5">
-                      {gateEnabled && gateHasPassword
-                        ? "🔒 Gate is ON — visitors must enter access code"
-                        : gateEnabled && !gateHasPassword
-                        ? "⚠️ Gate is enabled but no password set yet"
-                        : "🔓 Gate is OFF — visitors can access site freely"}
-                    </p>
+              <div className="space-y-8">
+                
+                {/* 1. Site Access Gate Card */}
+                <div className="max-w-xl rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 shadow-md bg-white/80 dark:bg-black/30 backdrop-blur-lg">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">🔒</span>
+                    <h3 className="text-lg font-bold">Site Access Gate</h3>
                   </div>
-                  {/* Toggle */}
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        setGateError(""); setGateMsg("");
-                        const { data } = await API.put("/auth/site-gate", { enabled: !gateEnabled });
-                        setGateEnabled(data.gateEnabled);
-                        setGateMsg(data.gateEnabled ? "Gate enabled." : "Gate disabled.");
-                        refreshSettings();
-                      } catch (err) {
-                        setGateError(getErrorMessage(err));
-                      }
-                    }}
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none ${
-                      gateEnabled
-                        ? "bg-red-500 border-red-500"
-                        : "bg-slate-300 dark:bg-slate-600 border-transparent"
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ease-in-out mt-0.5 ${
-                        gateEnabled ? "translate-x-5" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="h-px bg-slate-200 dark:bg-white/10" />
-
-                {/* Three.js Background toggle */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-sm">Three.js Particle Animation</p>
-                    <p className="text-xs app-muted mt-0.5">
-                      {threeJsBackgroundEnabled
-                        ? "✨ 3D particle packet flows are enabled"
-                        : "🔌 3D background is disabled (reduces CPU/GPU load)"}
-                    </p>
-                  </div>
-                  {/* Toggle */}
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        setGateError(""); setGateMsg("");
-                        const { data } = await API.put("/auth/site-gate", {
-                          threeJsBackgroundEnabled: !threeJsBackgroundEnabled
-                        });
-                        setThreeJsBackgroundEnabled(data.threeJsBackgroundEnabled);
-                        setGateMsg(data.threeJsBackgroundEnabled ? "Three.js background enabled." : "Three.js background disabled.");
-                        refreshSettings();
-                      } catch (err) {
-                        setGateError(getErrorMessage(err));
-                      }
-                    }}
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none ${
-                      threeJsBackgroundEnabled
-                        ? "bg-red-500 border-red-500"
-                        : "bg-slate-300 dark:bg-slate-600 border-transparent"
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ease-in-out mt-0.5 ${
-                        threeJsBackgroundEnabled ? "translate-x-5" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="h-px bg-slate-200 dark:bg-white/10" />
-
-                {/* Set / Change Password */}
-                <div>
-                  <p className="font-semibold text-sm mb-1">
-                    {gateHasPassword ? "Change Access Code" : "Set Access Code"}
-                  </p>
-                  <p className="text-xs app-muted mb-4">
-                    {gateHasPassword
-                      ? "A code is currently set. Enter a new one to replace it."
-                      : "No code is set yet. Set one and enable the gate above."}
+                  <p className="text-xs app-muted mb-6">
+                    When enabled, all visitors must enter a secret access code before they can reach the login or register page.
                   </p>
 
-                  <div className="space-y-3">
-                    <div>
-                      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider app-muted">
-                        New Access Code
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="Min. 4 characters"
-                        value={newGatePassword}
-                        onChange={(e) => setNewGatePassword(e.target.value)}
-                        className="w-full rounded-xl border app-border bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-slate-900 dark:text-white"
-                      />
+                  <div className="space-y-6">
+                    {/* Status Toggle */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-sm">Gate Status</p>
+                        <p className="text-xs app-muted mt-0.5">
+                          {gateEnabled && gateHasPassword
+                            ? "Gate is ON — visitors must verify access code"
+                            : gateEnabled && !gateHasPassword
+                            ? "⚠️ Enabled, but no password set yet"
+                            : "Gate is OFF — visitors can enter freely"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            setGateError(""); setGateMsg("");
+                            const { data } = await API.put("/auth/site-gate", { enabled: !gateEnabled });
+                            setGateEnabled(data.gateEnabled);
+                            setGateMsg(data.gateEnabled ? "Gate enabled." : "Gate disabled.");
+                            refreshSettings();
+                          } catch (err) {
+                            setGateError(getErrorMessage(err));
+                          }
+                        }}
+                        className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none ${
+                          gateEnabled ? "bg-red-500 border-red-500" : "bg-slate-300 dark:bg-slate-600 border-transparent"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ease-in-out mt-0.5 ${
+                            gateEnabled ? "translate-x-5" : "translate-x-0.5"
+                          }`}
+                        />
+                      </button>
                     </div>
+
+                    <div className="h-px bg-slate-200/50 dark:bg-white/5" />
+
+                    {/* Change Password fields */}
                     <div>
-                      <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider app-muted">
-                        Confirm Code
-                      </label>
-                      <input
-                        type="password"
-                        placeholder="Re-enter code"
-                        value={confirmGatePassword}
-                        onChange={(e) => setConfirmGatePassword(e.target.value)}
-                        className="w-full rounded-xl border app-border bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-slate-900 dark:text-white"
-                      />
+                      <p className="font-semibold text-sm mb-1">
+                        {gateHasPassword ? "Change Access Code" : "Set Access Code"}
+                      </p>
+                      <p className="text-xs app-muted mb-4">
+                        {gateHasPassword
+                          ? "A code is currently set. Enter a new one to replace it."
+                          : "No code is set yet. Set one and enable the gate above."}
+                      </p>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider app-muted">
+                            New Access Code
+                          </label>
+                          <input
+                            type="password"
+                            placeholder="Min. 4 characters"
+                            value={newGatePassword}
+                            onChange={(e) => setNewGatePassword(e.target.value)}
+                            className="w-full rounded-xl border app-border bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-slate-900 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider app-muted">
+                            Confirm Code
+                          </label>
+                          <input
+                            type="password"
+                            placeholder="Re-enter code"
+                            value={confirmGatePassword}
+                            onChange={(e) => setConfirmGatePassword(e.target.value)}
+                            className="w-full rounded-xl border app-border bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-slate-900 dark:text-white"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          disabled={gateSaving}
+                          onClick={async () => {
+                            setGateError(""); setGateMsg("");
+                            if (!newGatePassword) {
+                              setGateError("Please enter a new access code."); return;
+                            }
+                            if (newGatePassword.length < 4) {
+                              setGateError("Code must be at least 4 characters."); return;
+                            }
+                            if (newGatePassword !== confirmGatePassword) {
+                              setGateError("Codes do not match."); return;
+                            }
+                            try {
+                              setGateSaving(true);
+                              const { data } = await API.put("/auth/site-gate", { password: newGatePassword });
+                              setGateHasPassword(data.hasPassword);
+                              setGateEnabled(data.gateEnabled);
+                              setNewGatePassword("");
+                              setConfirmGatePassword("");
+                              setGateMsg("Access code saved successfully!");
+                              refreshSettings();
+                            } catch (err) {
+                              setGateError(getErrorMessage(err));
+                            } finally {
+                              setGateSaving(false);
+                            }
+                          }}
+                          className="w-full rounded-xl btn-primary-red p-3 text-sm font-bold tracking-wide disabled:opacity-50"
+                        >
+                          {gateSaving ? "Saving…" : (gateHasPassword ? "Update Access Code" : "Set Access Code")}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Three.js Background Settings Card */}
+                <div className="max-w-xl rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 shadow-md bg-white/80 dark:bg-black/30 backdrop-blur-lg">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">✨</span>
+                    <h3 className="text-lg font-bold">Visual Effects</h3>
+                  </div>
+                  <p className="text-xs app-muted mb-6">
+                    Toggle dynamic rendering visual effects on pages to adjust computational performance.
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-sm">Three.js Particle Animation</p>
+                      <p className="text-xs app-muted mt-0.5">
+                        {threeJsBackgroundEnabled
+                          ? "3D particle flows are active"
+                          : "3D background is disabled (saves GPU/battery)"}
+                      </p>
                     </div>
                     <button
                       type="button"
-                      disabled={gateSaving}
                       onClick={async () => {
-                        setGateError(""); setGateMsg("");
-                        if (!newGatePassword) {
-                          setGateError("Please enter a new access code."); return;
-                        }
-                        if (newGatePassword.length < 4) {
-                          setGateError("Code must be at least 4 characters."); return;
-                        }
-                        if (newGatePassword !== confirmGatePassword) {
-                          setGateError("Codes do not match."); return;
-                        }
                         try {
-                          setGateSaving(true);
-                          const { data } = await API.put("/auth/site-gate", { password: newGatePassword });
-                          setGateHasPassword(data.hasPassword);
-                          setGateEnabled(data.gateEnabled);
-                          setNewGatePassword("");
-                          setConfirmGatePassword("");
-                          setGateMsg("Access code saved successfully!");
+                          setGateError(""); setGateMsg("");
+                          const { data } = await API.put("/auth/site-gate", {
+                            threeJsBackgroundEnabled: !threeJsBackgroundEnabled
+                          });
+                          setThreeJsBackgroundEnabled(data.threeJsBackgroundEnabled);
+                          setGateMsg(data.threeJsBackgroundEnabled ? "Three.js background enabled." : "Three.js background disabled.");
                           refreshSettings();
                         } catch (err) {
                           setGateError(getErrorMessage(err));
-                        } finally {
-                          setGateSaving(false);
                         }
                       }}
-                      className="w-full rounded-xl btn-primary-red p-3 text-sm font-bold tracking-wide disabled:opacity-50"
+                      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none ${
+                        threeJsBackgroundEnabled ? "bg-red-500 border-red-500" : "bg-slate-300 dark:bg-slate-600 border-transparent"
+                      }`}
                     >
-                      {gateSaving ? "Saving…" : (gateHasPassword ? "Update Access Code" : "Set Access Code")}
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ease-in-out mt-0.5 ${
+                          threeJsBackgroundEnabled ? "translate-x-5" : "translate-x-0.5"
+                        }`}
+                      />
                     </button>
                   </div>
                 </div>
 
-                {/* Messages */}
-                {gateMsg && (
-                  <div className="flex items-center gap-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 p-3 text-sm text-emerald-700 dark:text-emerald-300 font-medium">
-                    <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    {gateMsg}
+                {/* 3. Website Typography Settings Card */}
+                <div className="max-w-4xl rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 shadow-md bg-white/80 dark:bg-black/30 backdrop-blur-lg">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">🎨</span>
+                    <h3 className="text-lg font-bold">Website Typography</h3>
                   </div>
-                )}
-                {gateError && (
-                  <div className="flex items-center gap-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-3 text-sm text-rose-700 dark:text-rose-300 font-medium">
-                    <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                    {gateError}
+                  <p className="text-xs app-muted mb-6">
+                    Choose the global font family applied to all visitors across the entire website.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      { name: "Inter", value: "Inter" },
+                      { name: "Outfit", value: "Outfit" },
+                      { name: "Poppins", value: "Poppins" },
+                      { name: "Roboto", value: "Roboto" },
+                      { name: "Montserrat", value: "Montserrat" },
+                      { name: "Playfair Display", value: "Playfair Display" },
+                      { name: "Lora", value: "Lora" },
+                      { name: "Fira Code", value: "Fira Code" },
+                      { name: "Plus Jakarta Sans", value: "Plus Jakarta Sans" },
+                      { name: "Space Grotesk", value: "Space Grotesk" },
+                      { name: "Syne", value: "Syne" },
+                      { name: "Cinzel", value: "Cinzel" },
+                      { name: "Lexend", value: "Lexend" },
+                    ].map((font) => (
+                      <button
+                        key={font.value}
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            setGateError(""); setGateMsg("");
+                            const { data } = await API.put("/auth/site-gate", {
+                              fontFamily: font.value
+                            });
+                            setSelectedFont(data.fontFamily);
+                            setGateMsg(`Font changed to ${font.name} successfully.`);
+                            refreshSettings();
+                          } catch (err) {
+                            setGateError(getErrorMessage(err));
+                          }
+                        }}
+                        className={`rounded-xl border p-4 text-center transition-all duration-300 cursor-pointer ${
+                          selectedFont === font.value
+                            ? "border-red-500 bg-red-500/5 text-red-500 shadow-md font-bold scale-[1.02]"
+                            : "border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-black/10 hover:border-slate-300 dark:hover:border-white/10"
+                        }`}
+                        style={{ fontFamily: font.value }}
+                      >
+                        <span className="block text-base">{font.name}</span>
+                        <span className="mt-1 block text-xs opacity-60">Abc 123</span>
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
 
               </div>
             )}
@@ -2465,6 +2945,47 @@ export default function Admin() {
                   </svg>
                   Clear All Logs
                 </button>
+              </div>
+            </div>
+
+            {/* Filter Bar */}
+            <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl">
+              {/* Search input */}
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider app-muted">
+                  Search Logs
+                </label>
+                <input
+                  type="text"
+                  placeholder="Search user, email, action, details..."
+                  value={logsSearchTerm}
+                  onChange={(e) => {
+                    setLogsSearchTerm(e.target.value);
+                    setLogsPage(1);
+                  }}
+                  className="w-full rounded-xl border app-border bg-white dark:bg-white/5 px-4 py-2.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* Action category filter */}
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider app-muted">
+                  Action Category
+                </label>
+                <select
+                  value={logsActionType}
+                  onChange={(e) => {
+                    setLogsActionType(e.target.value);
+                    setLogsPage(1);
+                  }}
+                  className="w-full rounded-xl border app-border bg-white dark:bg-slate-800 px-4 py-2.5 text-sm outline-none transition-all focus:border-red-500 focus:ring-2 focus:ring-red-500/20 text-slate-900 dark:text-white"
+                >
+                  <option value="ALL">📋 All Categories</option>
+                  <option value="CONTENT">✍️ Content Management</option>
+                  <option value="AUTH">🔑 Authentication</option>
+                  <option value="SYSTEM">⚙️ System Configuration & Logs</option>
+                  <option value="CONSUMPTION">🎬 Content Consumption</option>
+                </select>
               </div>
             </div>
 

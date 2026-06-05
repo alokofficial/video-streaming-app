@@ -37,6 +37,33 @@ export default function Navbar({
   const [canGoForward, setCanGoForward] =
     useState(false);
 
+  const [currentTime, setCurrentTime] = useState(() => {
+    const now = new Date();
+    return now.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  });
+
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      setCurrentTime(
+        now.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false,
+        })
+      );
+    };
+
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const headerTitle = useMemo(() => {
     if (!token) {
       return "Flow Learn";
@@ -172,12 +199,17 @@ export default function Navbar({
   return (
     <nav className="app-panel sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b p-3 backdrop-blur-md transition-all duration-300 sm:p-4">
       <Link to="/" className="flex items-center gap-3 min-w-0 flex-1 basis-40 group">
-        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-black/20 p-0.5 shadow-sm transition-all duration-300 transform group-hover:scale-105 group-hover:border-red-500/30">
-          <img
-            src="/logo.png"
-            alt="Flow Learn Logo"
-            className="h-full w-full object-cover rounded-md"
-          />
+        <div className="flex flex-col items-center gap-1 shrink-0">
+          <div className="relative h-10 w-10 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-black/20 p-0.5 shadow-sm transition-all duration-300 transform group-hover:scale-105 group-hover:border-red-500/30">
+            <img
+              src="/logo.png"
+              alt="Flow Learn Logo"
+              className="h-full w-full object-cover rounded-md"
+            />
+          </div>
+          <span className="text-[9px] font-mono font-medium tracking-tight text-black dark:text-white">
+            {currentTime}
+          </span>
         </div>
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-red-500 dark:text-red-400 sm:text-xs sm:tracking-[0.2em] transition-colors group-hover:text-red-400">
@@ -427,6 +459,14 @@ export default function Navbar({
                     className="app-hover rounded px-3 py-2"
                   >
                     User Profile
+                  </Link>
+
+                  <Link
+                    to="/notes"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="app-hover rounded px-3 py-2"
+                  >
+                    My Notes
                   </Link>
 
                   <Link

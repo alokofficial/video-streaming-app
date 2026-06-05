@@ -9,6 +9,7 @@ import PdfViewer from "./pages/PdfViewer";
 import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
 import SiteGate from "./pages/SiteGate";
+import Notes from "./pages/Notes";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import SiteGateGuard from "./components/SiteGateGuard";
@@ -98,6 +99,15 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <ChangePassword />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/notes"
+              element={
+                <ProtectedRoute>
+                  <Notes />
                 </ProtectedRoute>
               }
             />
