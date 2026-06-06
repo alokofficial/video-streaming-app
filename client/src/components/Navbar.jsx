@@ -208,7 +208,7 @@ export default function Navbar({
 
   return (
     <nav className={`app-panel sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 p-3 backdrop-blur-xl transition-all duration-500 sm:p-4 ${isScrolled ? 'navbar-scrolled' : 'navbar-gradient-border'}`}>
-      <Link to="/" className="flex items-center gap-3 min-w-0 flex-1 basis-40 group">
+      <Link to="/" className="flex items-center gap-3 min-w-0 flex-1 md:basis-40 group">
         <div className="flex flex-col items-center gap-1.5 shrink-0">
           <div className="relative h-11 w-11 overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-black/20 p-0.5 shadow-lg transition-all duration-300 transform group-hover:scale-110 group-hover:border-red-500/40 group-hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]">
             <img
@@ -217,7 +217,7 @@ export default function Navbar({
               className="h-full w-full object-cover rounded-lg"
             />
           </div>
-          <span className="clock-pill text-[9px] font-mono font-semibold tracking-tight text-black dark:text-white/80">
+          <span className="clock-pill hidden sm:inline-block text-[9px] font-mono font-semibold tracking-tight text-black dark:text-white/80">
             {currentTime}
           </span>
         </div>
@@ -231,7 +231,34 @@ export default function Navbar({
         </div>
       </Link>
 
-      <div className="shrink-0">
+      {token && showAdminViewSelector && (
+        <div className="w-full md:w-auto order-3 md:order-none flex justify-center md:justify-start">
+          <div className="app-panel glass-card flex w-full md:w-auto items-center justify-between md:justify-start gap-2 rounded-xl border px-3 py-1.5 shadow-sm">
+            <span className="app-muted text-xs font-semibold hidden lg:inline">
+              View as
+            </span>
+            <select
+              value={selectedAdminViewUserId}
+              onChange={(e) => onAdminViewUserChange(e.target.value)}
+              className="app-input flex-1 md:flex-initial md:w-48 rounded-lg border px-2 py-1 text-xs outline-none focus:border-red-500"
+            >
+              <option value="">Admin view</option>
+              {adminViewUsers.map((adminUser) => (
+                <option key={adminUser.id} value={adminUser.id}>
+                  {adminUser.name} ({adminUser.email})
+                </option>
+              ))}
+            </select>
+            {Number.isFinite(adminViewCount) && (
+              <span className="rounded-md bg-red-600/20 px-2 py-1 text-xs font-semibold text-red-100 border border-red-500/20 shrink-0">
+                {adminViewCount}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="shrink-0 order-2 md:order-none">
         {!token ? (
           <div className="flex items-center gap-2 text-sm sm:gap-4 sm:text-base">
             <Link
@@ -249,8 +276,8 @@ export default function Navbar({
             </Link>
           </div>
         ) : (
-          <div className="relative flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-            <div className="app-panel glass-card flex items-center gap-1 rounded-xl p-1">
+          <div className="relative flex items-center justify-end gap-1.5 sm:gap-2.5">
+            <div className="app-panel glass-card hidden sm:flex items-center gap-1 rounded-xl p-1 shrink-0">
               <button
                 type="button"
                 aria-label="Go back"
@@ -298,47 +325,10 @@ export default function Navbar({
               </button>
             </div>
 
-            {showAdminViewSelector && (
-              <div className="app-panel glass-card flex max-w-full items-center gap-2 rounded-xl border px-2 py-2">
-                <span className="app-muted hidden text-xs font-semibold md:inline">
-                  View as
-                </span>
-
-                <select
-                  value={selectedAdminViewUserId}
-                  onChange={(e) =>
-                    onAdminViewUserChange(
-                      e.target.value
-                    )
-                  }
-                  className="app-input max-w-36 rounded-lg border px-2 py-1 text-xs outline-none focus:border-red-500 sm:max-w-52"
-                >
-                  <option value="">
-                    Admin view
-                  </option>
-                  {adminViewUsers.map((adminUser) => (
-                    <option
-                      key={adminUser.id}
-                      value={adminUser.id}
-                    >
-                      {adminUser.name} (
-                      {adminUser.email})
-                    </option>
-                  ))}
-                </select>
-
-                {Number.isFinite(adminViewCount) && (
-                  <span className="rounded-md bg-red-600/20 px-2 py-1 text-xs font-semibold text-red-100 border border-red-500/20">
-                    {adminViewCount}
-                  </span>
-                )}
-              </div>
-            )}
-
             {isAdmin && (
               <Link
                 to="/admin"
-                className="flex items-center gap-1.5 rounded-full border border-red-500/20 bg-linear-to-r from-red-500/10 to-indigo-500/10 px-3.5 py-1.5 text-xs font-semibold text-red-500 shadow-sm transition-all duration-300 hover:from-red-500/20 hover:to-indigo-500/20 hover:border-red-500/40 hover:shadow-[0_0_15px_rgba(244,63,94,0.15)] dark:border-red-500/20 dark:text-red-400 dark:hover:border-red-500/50"
+                className="flex items-center gap-1.5 rounded-full border border-red-500/20 bg-linear-to-r from-red-500/10 to-indigo-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-500 shadow-sm transition-all duration-300 hover:from-red-500/20 hover:to-indigo-500/20 hover:border-red-500/40 hover:shadow-[0_0_15px_rgba(244,63,94,0.15)] dark:border-red-500/20 dark:text-red-400 dark:hover:border-red-500/50 sm:px-3.5"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -354,7 +344,7 @@ export default function Navbar({
                     d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"
                   />
                 </svg>
-                <span>Admin</span>
+                <span className="hidden sm:inline">Admin</span>
               </Link>
             )}
 
@@ -367,7 +357,7 @@ export default function Navbar({
                   : "Switch to dark mode"
               }
               onClick={toggleTheme}
-              className="app-surface flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-300 hover:bg-[var(--app-hover)] hover:shadow-md hover:scale-105"
+              className="app-surface flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-300 hover:bg-[var(--app-hover)] hover:shadow-md hover:scale-105 shrink-0"
             >
               {isDarkMode ? (
                 <svg
@@ -411,9 +401,9 @@ export default function Navbar({
               onClick={() =>
                 setIsMenuOpen((current) => !current)
               }
-              className="flex flex-col items-center gap-1 rounded-lg px-1 py-1 sm:px-2 transition-all duration-200 hover:bg-[var(--app-hover)]"
+              className="flex items-center gap-2 rounded-lg p-1 sm:p-2 transition-all duration-200 hover:bg-[var(--app-hover)] shrink-0"
             >
-              <span className="avatar-ring flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 overflow-hidden border-2 border-slate-200 dark:border-white/10 shadow-lg transition-all duration-300 hover:shadow-[0_0_15px_rgba(244,63,94,0.2)]">
+              <span className="avatar-ring flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full overflow-hidden border-2 border-slate-200 dark:border-white/10 shadow-lg transition-all duration-300 hover:shadow-[0_0_15px_rgba(244,63,94,0.2)]">
                 {user?.avatar ? (
                   <img
                     src={user.avatar}
@@ -427,7 +417,7 @@ export default function Navbar({
                 )}
               </span>
 
-              <span className="app-muted max-w-[72px] truncate text-[11px] sm:max-w-[120px] sm:text-xs">
+              <span className="app-muted hidden md:inline-block max-w-[100px] truncate text-xs">
                 {user?.name}
               </span>
             </button>
