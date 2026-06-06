@@ -521,6 +521,7 @@ export const getSiteGateStatus = async (req, res) => {
       gateEnabled: settings.gateEnabled && !!settings.gatePasswordHash,
       threeJsBackgroundEnabled: settings.threeJsBackgroundEnabled !== false,
       fontFamily: settings.fontFamily || "Inter",
+      youtubeDirectEnabled: settings.youtubeDirectEnabled !== false,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -561,6 +562,7 @@ export const getSiteGateSettings = async (req, res) => {
       hasPassword: !!settings.gatePasswordHash,
       threeJsBackgroundEnabled: settings.threeJsBackgroundEnabled !== false,
       fontFamily: settings.fontFamily || "Inter",
+      youtubeDirectEnabled: settings.youtubeDirectEnabled !== false,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -586,7 +588,7 @@ const ALLOWED_FONTS = [
 // ADMIN — set/update gate (toggle, change password)
 export const setSiteGate = async (req, res) => {
   try {
-    const { enabled, password, threeJsBackgroundEnabled, fontFamily } = req.body;
+    const { enabled, password, threeJsBackgroundEnabled, fontFamily, youtubeDirectEnabled } = req.body;
 
     const update = {};
 
@@ -596,6 +598,10 @@ export const setSiteGate = async (req, res) => {
 
     if (typeof threeJsBackgroundEnabled === "boolean") {
       update.threeJsBackgroundEnabled = threeJsBackgroundEnabled;
+    }
+
+    if (typeof youtubeDirectEnabled === "boolean") {
+      update.youtubeDirectEnabled = youtubeDirectEnabled;
     }
 
     if (fontFamily !== undefined) {
@@ -626,6 +632,9 @@ export const setSiteGate = async (req, res) => {
     if (typeof threeJsBackgroundEnabled === "boolean") {
       detailParts.push(`threeJsBackgroundEnabled: ${threeJsBackgroundEnabled}`);
     }
+    if (typeof youtubeDirectEnabled === "boolean") {
+      detailParts.push(`youtubeDirectEnabled: ${youtubeDirectEnabled}`);
+    }
     if (fontFamily !== undefined) {
       detailParts.push(`fontFamily: ${fontFamily}`);
     }
@@ -651,6 +660,7 @@ export const setSiteGate = async (req, res) => {
       hasPassword: !!settings.gatePasswordHash,
       threeJsBackgroundEnabled: settings.threeJsBackgroundEnabled !== false,
       fontFamily: settings.fontFamily || "Inter",
+      youtubeDirectEnabled: settings.youtubeDirectEnabled !== false,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

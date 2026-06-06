@@ -15,6 +15,7 @@ export const SiteGateProvider = ({ children }) => {
   const [gateEnabled, setGateEnabled] = useState(false);
   const [threeJsBackgroundEnabled, setThreeJsBackgroundEnabled] = useState(true);
   const [fontFamily, setFontFamily] = useState("Inter");
+  const [youtubeDirectEnabled, setYoutubeDirectEnabled] = useState(true);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -24,6 +25,7 @@ export const SiteGateProvider = ({ children }) => {
       setGateEnabled(data.gateEnabled);
       setThreeJsBackgroundEnabled(data.threeJsBackgroundEnabled !== false);
       setFontFamily(data.fontFamily || "Inter");
+      setYoutubeDirectEnabled(data.youtubeDirectEnabled !== false);
 
       if (!data.gateEnabled) {
         // Gate is off — always unlocked
@@ -90,12 +92,13 @@ export const SiteGateProvider = ({ children }) => {
       gateEnabled,
       threeJsBackgroundEnabled,
       fontFamily,
+      youtubeDirectEnabled,
       isUnlocked,
       isLoading,
       unlock,
       refreshSettings: checkGate,
     }),
-    [gateEnabled, threeJsBackgroundEnabled, fontFamily, isUnlocked, isLoading]
+    [gateEnabled, threeJsBackgroundEnabled, fontFamily, youtubeDirectEnabled, isUnlocked, isLoading]
   );
 
   return (

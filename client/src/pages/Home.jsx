@@ -15,6 +15,7 @@ const ThreeBackground = lazy(() => import("../components/ThreeBackground"));
 
 import { useAuth } from "../context/AuthContext";
 import API from "../services/api";
+import { useSiteGate } from "../context/SiteGateContext";
 
 const extractDriveId = (input) => {
   if (!input) return "";
@@ -50,6 +51,7 @@ const getDateValue = (value) => {
 
 export default function Home() {
   const { isAdmin } = useAuth();
+  const { youtubeDirectEnabled } = useSiteGate();
   const [videos, setVideos] = useState([]);
   const [youtubeVideos, setYoutubeVideos] =
     useState([]);
@@ -68,6 +70,14 @@ export default function Home() {
 
   // --- Inline Add Content Modal States ---
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // --- YouTube Direct Player States ---
+  const [ytDirectInput, setYtDirectInput] = useState("");
+  const [ytSearchResults, setYtSearchResults] = useState([]);
+  const [isSearchingYt, setIsSearchingYt] = useState(false);
+  const [ytDirectError, setYtDirectError] = useState("");
+  const [activeDirectYoutubeId, setActiveDirectYoutubeId] = useState("");
+
   const [modalCategory, setModalCategory] = useState("");
   const [modalSubheading, setModalSubheading] = useState("");
   const [modalContentType, setModalContentType] = useState("drive"); // "drive", "youtube", "pdf"
@@ -199,6 +209,62 @@ export default function Home() {
     } finally {
       setIsModalSubmitting(false);
     }
+  };
+
+  // --- YouTube Direct Player Handlers ---
+  const extractYoutubeVideoId = (url) => {
+    if (!url) return "";
+    const trimmed = url.trim();
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = trimmed.match(regex);
+    if (match && match[1]) {
+      return match[1];
+    }
+    if (trimmed.length === 11 && /^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+      return trimmed;
+    }
+    return "";
+  };
+
+  const handleYtDirectSearch = async (e) => {
+    e.preventDefault();
+    setYtDirectError("");
+
+    const input = ytDirectInput.trim();
+    if (!input) {
+      setYtDirectError("Please enter a YouTube link, Video ID, or search query");
+      return;
+    }
+
+    const extractedId = extractYoutubeVideoId(input);
+    if (extractedId) {
+      setActiveDirectYoutubeId(extractedId);
+      return;
+    }
+
+    setIsSearchingYt(true);
+    try {
+      const { data } = await API.get("/youtube/search", {
+        params: { q: input }
+      });
+      if (!Array.isArray(data) || data.length === 0) {
+        setYtDirectError(`No results found for "${input}"`);
+        setYtSearchResults([]);
+      } else {
+        setYtSearchResults(data);
+      }
+    } catch (err) {
+      console.error(err);
+      setYtDirectError(err.response?.data?.message || err.message || "Failed to search videos");
+    } finally {
+      setIsSearchingYt(false);
+    }
+  };
+
+  const handleClearYtResults = () => {
+    setYtSearchResults([]);
+    setYtDirectInput("");
+    setYtDirectError("");
   };
 
   const [categoryOrder, setCategoryOrder] =
@@ -577,6 +643,125 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* ── YouTube Direct Player Section ── */}
+        {youtubeDirectEnabled && (
+          <div className="mb-8 rounded-2xl border border-[var(--app-card-border)] glass-card p-4 sm:p-6 animate-slide-up" style={{ animationDelay: '50ms' }}>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-bold sm:text-xl flex items-center gap-2">
+                  <svg className="h-5 w-5 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.11C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.387.553a3.003 3.003 0 0 0-2.11 2.11C0 8.051 0 12 0 12s0 3.949.502 5.837a3.003 3.003 0 0 0 2.11 2.11c1.887.553 9.387.553 9.387.553s7.5 0 9.387-.553a3.003 3.003 0 0 0 2.11-2.11C24 15.949 24 12 24 12s0-3.949-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
+                  <span>YouTube Direct Player</span>
+                </h2>
+                <p className="app-muted mt-1 text-xs sm:text-sm">
+                  Paste a YouTube URL/Video ID to play instantly, or type a search query to browse videos.
+                </p>
+              </div>
+              
+              <form onSubmit={handleYtDirectSearch} className="relative flex w-full min-w-0 items-center gap-2 sm:max-w-md">
+                <div className="relative min-w-0 flex-1">
+                  <input
+                    type="text"
+                    placeholder="Paste YouTube Link / ID or search..."
+                    value={ytDirectInput}
+                    onChange={(e) => {
+                      setYtDirectInput(e.target.value);
+                      if (ytDirectError) setYtDirectError("");
+                    }}
+                    className="w-full rounded-xl border app-border bg-black/20 pl-4 pr-10 py-2.5 text-sm outline-none transition-all duration-300 input-glow"
+                  />
+                  {ytDirectInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setYtDirectInput("");
+                        setYtDirectError("");
+                      }}
+                      className="absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full app-soft-surface text-xs font-bold app-muted hover:bg-gray-700 transition-colors"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                
+                <button
+                  type="submit"
+                  disabled={isSearchingYt}
+                  className="btn-primary-red shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-50 cursor-pointer"
+                >
+                  {isSearchingYt ? "Searching..." : "Search / Play"}
+                </button>
+              </form>
+            </div>
+            
+            {ytDirectError && (
+              <p className="mt-2.5 text-xs font-medium text-rose-500 animate-slide-up">
+                {ytDirectError}
+              </p>
+            )}
+  
+            {/* Search results container */}
+            {ytSearchResults.length > 0 && (
+              <div className="mt-6 border-t border-white/5 pt-5 animate-scale-in">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-red-500">
+                    YouTube Search Results
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={handleClearYtResults}
+                    className="text-xs font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    Clear Results
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 stagger-enter">
+                  {ytSearchResults.map((video) => (
+                    <button
+                      key={video.videoId}
+                      type="button"
+                      onClick={() => setActiveDirectYoutubeId(video.videoId)}
+                      className="group text-left block w-full focus:outline-none cursor-pointer"
+                    >
+                      <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-[var(--app-card-border)] bg-black/40 group-hover:border-red-500/40 transition-all duration-300">
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                        {video.length && (
+                          <span className="absolute bottom-1.5 right-1.5 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-semibold text-white tracking-wide">
+                            {video.length}
+                          </span>
+                        )}
+                        
+                        <div className="play-overlay">
+                          <div className="play-icon-circle h-9 w-9">
+                            <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-2.5">
+                        <h4 className="line-clamp-2 text-xs font-semibold leading-tight text-white group-hover:text-red-400 transition-colors duration-200">
+                          {video.title}
+                        </h4>
+                        <p className="mt-1 truncate text-[10px] text-slate-400">
+                          {video.channelTitle} • {video.viewCount || video.publishedTime}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {!hasVisibleContent && (
           <div className="flex flex-col items-center justify-center py-20 animate-slide-up">
@@ -1201,6 +1386,42 @@ export default function Home() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── YouTube Direct Overlay Modal Player ── */}
+      {activeDirectYoutubeId && (
+        <div 
+          onClick={() => setActiveDirectYoutubeId("")}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-3 sm:p-4 md:p-6 backdrop-blur-md animate-fade-in cursor-default"
+        >
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveDirectYoutubeId("");
+            }}
+            className="absolute right-4 top-4 z-55 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 active:scale-95 transition-all duration-200 cursor-pointer shadow-lg border border-white/10"
+            title="Close Player"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+          
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative aspect-video h-auto w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl animate-scale-in"
+          >
+            <iframe
+              src={`https://www.youtube.com/embed/${activeDirectYoutubeId}?autoplay=1&modestbranding=1&rel=0`}
+              className="h-full w-full border-none"
+              allowFullScreen
+              allow="autoplay; encrypted-media"
+              title="YouTube Direct Video Player"
+            />
           </div>
         </div>
       )}

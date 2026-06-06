@@ -9,6 +9,7 @@ import {
   deleteAllYoutubeVideos,
   embedYoutubeVideo,
   exportYoutubeVideos,
+  searchYoutubeVideos,
 } from "../controllers/youtubeController.js";
 import {
   protect,
@@ -18,6 +19,7 @@ import {
 const router = express.Router();
 
 router.get("/", protect, getYoutubeVideos);
+router.get("/search", protect, searchYoutubeVideos);
 
 router.get(
   "/export",

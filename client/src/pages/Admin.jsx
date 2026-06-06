@@ -280,6 +280,7 @@ export default function Admin() {
   const { refreshSettings } = useSiteGate();
   const [gateEnabled, setGateEnabled] = useState(false);
   const [threeJsBackgroundEnabled, setThreeJsBackgroundEnabled] = useState(true);
+  const [youtubeDirectEnabled, setYoutubeDirectEnabled] = useState(true);
   const [selectedFont, setSelectedFont] = useState("Inter");
   const [gateHasPassword, setGateHasPassword] = useState(false);
   const [newGatePassword, setNewGatePassword] = useState("");
@@ -377,6 +378,7 @@ export default function Admin() {
       setGateEnabled(data.gateEnabled);
       setGateHasPassword(data.hasPassword);
       setThreeJsBackgroundEnabled(data.threeJsBackgroundEnabled !== false);
+      setYoutubeDirectEnabled(data.youtubeDirectEnabled !== false);
       setSelectedFont(data.fontFamily || "Inter");
     } catch {
       // silently ignore
@@ -2843,6 +2845,53 @@ export default function Admin() {
                       <span
                         className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ease-in-out mt-0.5 ${
                           threeJsBackgroundEnabled ? "translate-x-5" : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2.5. YouTube Direct Settings Card */}
+                <div className="max-w-xl rounded-2xl border border-slate-200 dark:border-white/5 app-panel p-6 shadow-md bg-white/80 dark:bg-black/30 backdrop-blur-lg animate-fade-in">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-xl">🎥</span>
+                    <h3 className="text-lg font-bold">YouTube Direct Settings</h3>
+                  </div>
+                  <p className="text-xs app-muted mb-6">
+                    Control whether the YouTube Direct Player search and playback panel is displayed on the library home page.
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-sm">YouTube Direct Player</p>
+                      <p className="text-xs app-muted mt-0.5">
+                        {youtubeDirectEnabled
+                          ? "Direct search and play panel is enabled"
+                          : "Direct search and play panel is disabled"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          setGateError(""); setGateMsg("");
+                          const { data } = await API.put("/auth/site-gate", {
+                            youtubeDirectEnabled: !youtubeDirectEnabled
+                          });
+                          setYoutubeDirectEnabled(data.youtubeDirectEnabled !== false);
+                          setGateMsg(data.youtubeDirectEnabled !== false ? "YouTube Direct Player enabled." : "YouTube Direct Player disabled.");
+                          refreshSettings();
+                        } catch (err) {
+                          setGateError(getErrorMessage(err));
+                        }
+                      }}
+                      className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 ease-in-out focus:outline-none ${
+                        youtubeDirectEnabled ? "bg-red-500 border-red-500" : "bg-slate-300 dark:bg-slate-600 border-transparent"
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ease-in-out mt-0.5 ${
+                          youtubeDirectEnabled ? "translate-x-5" : "translate-x-0.5"
                         }`}
                       />
                     </button>

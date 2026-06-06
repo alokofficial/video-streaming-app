@@ -22,6 +22,10 @@ const siteSettingSchema = new mongoose.Schema(
       type: String,
       default: "Inter",
     },
+    youtubeDirectEnabled: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     _id: false,

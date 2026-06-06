@@ -419,3 +419,64 @@ export const deleteAllYoutubeVideos = async (req, res) => {
     });
   }
 };
+
+// SEARCH YOUTUBE VIDEOS DIRECTLY (KEYLESS SCRAPER)
+export const searchYoutubeVideos = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || !String(q).trim()) {
+      return res.status(400).json({ message: "Search query is required" });
+    }
+
+    const query = String(q).trim();
+    // sp=EgIQAQ%3D%3D filters by Video
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}&sp=EgIQAQ%253D%253D`;
+    
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const html = await response.text();
+    const match = html.match(/ytInitialData\s*=\s*({.+?});/);
+    if (!match) {
+      return res.json([]);
+    }
+
+    const data = JSON.parse(match[1]);
+    const contents = data.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents;
+    if (!contents) {
+      return res.json([]);
+    }
+
+    const itemsSection = contents.find(c => c.itemSectionRenderer);
+    const items = itemsSection?.itemSectionRenderer?.contents || [];
+
+    const videos = [];
+    for (const item of items) {
+      if (item.videoRenderer) {
+        const vr = item.videoRenderer;
+        videos.push({
+          videoId: vr.videoId,
+          title: vr.title?.runs?.[0]?.text || "",
+          thumbnail: vr.thumbnail?.thumbnails?.[0]?.url || "",
+          channelTitle: vr.longBylineText?.runs?.[0]?.text || "",
+          publishedTime: vr.publishedTimeText?.simpleText || "",
+          length: vr.lengthText?.simpleText || "",
+          viewCount: vr.viewCountText?.simpleText || "",
+        });
+      }
+    }
+
+    res.json(videos.slice(0, 10));
+  } catch (error) {
+    console.error("YouTube search error:", error);
+    res.status(500).json({ message: "Error searching YouTube videos" });
+  }
+};
