@@ -209,15 +209,15 @@ export default function Navbar({
   return (
     <nav className={`app-panel sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 p-3 backdrop-blur-xl transition-all duration-500 sm:p-4 ${isScrolled ? 'navbar-scrolled' : 'navbar-gradient-border'}`}>
       <Link to="/" className="flex items-center gap-3 min-w-0 flex-1 md:basis-40 group">
-        <div className="flex flex-col items-center gap-1.5 shrink-0">
-          <div className="relative h-11 w-11 overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-black/20 p-0.5 shadow-lg transition-all duration-300 transform group-hover:scale-110 group-hover:border-red-500/40 group-hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]">
+        <div className="flex flex-col items-center gap-1 shrink-0">
+          <div className="relative h-14 w-14 overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-black/20 p-0.5 shadow-lg transition-all duration-300 transform group-hover:scale-110 group-hover:border-red-500/40 group-hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]">
             <img
               src="/logo.png"
               alt="Flow Learn Logo"
               className="h-full w-full object-cover rounded-lg"
             />
           </div>
-          <span className="clock-pill hidden sm:inline-block text-[9px] font-mono font-semibold tracking-tight text-black dark:text-white/80">
+          <span className="clock-pill hidden sm:inline-block text-[11px] font-mono font-semibold tracking-tight text-black dark:text-white/80">
             {currentTime}
           </span>
         </div>

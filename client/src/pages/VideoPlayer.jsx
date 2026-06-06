@@ -174,6 +174,20 @@ const AspectRatioIcon = () => (
   </Icon>
 );
 
+const SettingsIcon = () => (
+  <Icon>
+    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+    <circle cx="12" cy="12" r="3" />
+  </Icon>
+);
+
+const TheaterModeIcon = () => (
+  <Icon>
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <path d="M6 10h12v4H6z" fill="currentColor" stroke="none" />
+  </Icon>
+);
+
 export default function VideoPlayer() {
   const { fileId } = useParams();
   const { token } = useAuth();
@@ -183,6 +197,8 @@ export default function VideoPlayer() {
   const progressRef = useRef(null);
   const controlsTimerRef = useRef(null);
   const previewSeekTimerRef = useRef(null);
+  const hudToastTimerRef = useRef(null);
+  const centerAnimTimerRef = useRef(null);
 
   const [selectedFileId, setSelectedFileId] =
     useState(fileId);
@@ -196,10 +212,19 @@ export default function VideoPlayer() {
   const [currentTime, setCurrentTime] =
     useState(0);
   const [volume, setVolume] = useState(1);
+  const [prevVolume, setPrevVolume] = useState(1);
   const [playbackRate, setPlaybackRate] =
     useState(1);
   const [isFullscreen, setIsFullscreen] =
     useState(false);
+  const [isTheaterMode, setIsTheaterMode] =
+    useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] =
+    useState(false);
+  const [hudToast, setHudToast] =
+    useState({ text: "", icon: "", visible: false, key: 0 });
+  const [centerAnim, setCenterAnim] =
+    useState({ type: "play", visible: false, key: 0 });
   const [showControls, setShowControls] =
     useState(true);
   const [aspectRatioMode, setAspectRatioMode] =
@@ -260,6 +285,22 @@ export default function VideoPlayer() {
       : aspectRatioMode === "fit"
         ? "object-contain"
         : "object-fill";
+
+  const showHUDToast = useCallback((text, icon) => {
+    window.clearTimeout(hudToastTimerRef.current);
+    setHudToast({ text, icon, visible: true, key: Date.now() });
+    hudToastTimerRef.current = window.setTimeout(() => {
+      setHudToast((prev) => ({ ...prev, visible: false }));
+    }, 1200);
+  }, []);
+
+  const triggerCenterAnim = useCallback((type) => {
+    window.clearTimeout(centerAnimTimerRef.current);
+    setCenterAnim({ type, visible: true, key: Date.now() });
+    centerAnimTimerRef.current = window.setTimeout(() => {
+      setCenterAnim((prev) => ({ ...prev, visible: false }));
+    }, 800);
+  }, []);
 
   const loadVideoDetails = useCallback(async () => {
     try {
@@ -437,9 +478,17 @@ export default function VideoPlayer() {
     }
 
     if (video.paused) {
-      await video.play();
+      try {
+        await video.play();
+        showHUDToast("Play", "▶️");
+        triggerCenterAnim("play");
+      } catch (err) {
+        console.error("Playback failed:", err);
+      }
     } else {
       video.pause();
+      showHUDToast("Pause", "⏸️");
+      triggerCenterAnim("pause");
     }
   };
 
@@ -450,10 +499,20 @@ export default function VideoPlayer() {
       return;
     }
 
-    video.currentTime = Math.min(
+    const nextTime = Math.min(
       Math.max(video.currentTime + seconds, 0),
       duration || video.duration || 0
     );
+    video.currentTime = nextTime;
+    setCurrentTime(nextTime);
+
+    if (seconds > 0) {
+      showHUDToast(`Forward ${seconds}s`, "⏩");
+      triggerCenterAnim("forward");
+    } else {
+      showHUDToast(`Backward ${Math.abs(seconds)}s`, "⏪");
+      triggerCenterAnim("backward");
+    }
   };
 
   const handleSeek = (e) => {
@@ -511,30 +570,51 @@ export default function VideoPlayer() {
     const video = videoRef.current;
 
     setVolume(nextVolume);
+    if (nextVolume > 0) {
+      setPrevVolume(nextVolume);
+    }
 
     if (video) {
       video.volume = nextVolume;
     }
+    showHUDToast(`Volume ${Math.round(nextVolume * 100)}%`, nextVolume === 0 ? "🔇" : nextVolume < 0.5 ? "🔉" : "🔊");
   };
 
-  const handleSpeed = (e) => {
-    const nextRate = Number(e.target.value);
+  const toggleMute = () => {
     const video = videoRef.current;
+    if (!video) return;
 
-    setPlaybackRate(nextRate);
-
-    if (video) {
-      video.playbackRate = nextRate;
+    if (volume > 0) {
+      setPrevVolume(volume);
+      setVolume(0);
+      video.volume = 0;
+      showHUDToast("Muted", "🔇");
+    } else {
+      const targetVol = prevVolume > 0 ? prevVolume : 0.5;
+      setVolume(targetVol);
+      video.volume = targetVol;
+      showHUDToast(`Volume ${Math.round(targetVol * 100)}%`, "🔊");
     }
   };
 
-  const handleQualityChange = (e) => {
+  const handleSpeedDirect = (nextRate) => {
+    const video = videoRef.current;
+    setPlaybackRate(nextRate);
+    if (video) {
+      video.playbackRate = nextRate;
+    }
+    showHUDToast(`Speed ${nextRate}x`, "⚡");
+  };
+
+  const handleQualityChangeDirect = (nextFileId) => {
     const video = videoRef.current;
     const wasPlaying = video && !video.paused;
-    const nextFileId = e.target.value;
+    const selectedQual = qualityOptions.find((q) => q.driveFileId === nextFileId);
+    const label = selectedQual ? selectedQual.label : "Default";
 
     setIsLoading(true);
     setSelectedFileId(nextFileId);
+    showHUDToast(`Quality: ${label}`, "🎬");
 
     window.setTimeout(() => {
       if (!videoRef.current) {
@@ -545,9 +625,24 @@ export default function VideoPlayer() {
       videoRef.current.volume = volume;
 
       if (wasPlaying) {
-        videoRef.current.play();
+        videoRef.current.play().catch(() => {});
       }
     }, 0);
+  };
+
+  const handleAspectRatioChangeDirect = (value) => {
+    setAspectRatioMode(value);
+    const opt = aspectRatioOptions.find((o) => o.value === value);
+    const label = opt ? opt.label : value;
+    showHUDToast(`Aspect: ${label}`, "📺");
+  };
+
+  const toggleTheaterMode = () => {
+    setIsTheaterMode((prev) => {
+      const next = !prev;
+      showHUDToast(next ? "Theater Mode On" : "Theater Mode Off", "🎭");
+      return next;
+    });
   };
 
   const togglePictureInPicture = async () => {
@@ -581,27 +676,100 @@ export default function VideoPlayer() {
     }
   };
 
+  // Keyboard Shortcuts Hook
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.tagName === "SELECT" ||
+          activeEl.isContentEditable)
+      ) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      const video = videoRef.current;
+
+      if (key === " " || key === "k") {
+        e.preventDefault();
+        togglePlay();
+      } else if (key === "arrowleft" || key === "j") {
+        e.preventDefault();
+        skip(-10);
+      } else if (key === "arrowright" || key === "l") {
+        e.preventDefault();
+        skip(10);
+      } else if (key === "arrowup") {
+        e.preventDefault();
+        const nextVol = Math.min(volume + 0.1, 1);
+        setVolume(nextVol);
+        if (video) {
+          video.volume = nextVol;
+        }
+        showHUDToast(`Volume ${Math.round(nextVol * 100)}%`, "🔊");
+      } else if (key === "arrowdown") {
+        e.preventDefault();
+        const nextVol = Math.max(volume - 0.1, 0);
+        setVolume(nextVol);
+        if (video) {
+          video.volume = nextVol;
+        }
+        showHUDToast(`Volume ${Math.round(nextVol * 100)}%`, nextVol === 0 ? "🔇" : "🔉");
+      } else if (key === "m") {
+        e.preventDefault();
+        toggleMute();
+      } else if (key === "f") {
+        e.preventDefault();
+        toggleFullscreen();
+      } else if (key === "t") {
+        e.preventDefault();
+        toggleTheaterMode();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [volume, prevVolume, duration, playbackRate, isFullscreen, isTheaterMode, showHUDToast, toggleMute]);
+
+
+  const handleVideoClick = () => {
+    if (isSettingsOpen) {
+      setIsSettingsOpen(false);
+    } else {
+      togglePlay();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
 
-      <div className="flex justify-center p-0 sm:p-4 md:p-6">
+      <div className={`flex justify-center transition-all duration-300 ${isTheaterMode && !isFullscreen ? "p-0" : "p-0 sm:p-4 md:p-6"}`}>
         <div
           ref={playerRef}
           onMouseMove={revealControls}
           onTouchStart={revealControls}
           onKeyDown={revealControls}
-          className={`w-full max-w-6xl overflow-hidden bg-gray-950 sm:rounded-2xl sm:shadow-2xl sm:shadow-black/60 ${
+          className={`w-full overflow-hidden bg-gray-950 transition-all duration-300 ${
             isFullscreen
               ? "max-w-none rounded-none"
-              : ""
+              : isTheaterMode
+                ? "max-w-none rounded-none w-screen border-y border-white/5"
+                : "max-w-6xl sm:rounded-2xl sm:shadow-2xl sm:shadow-black/60 border border-white/5"
           }`}
         >
           <div
-            className={`relative flex items-center justify-center bg-black ${
+            className={`relative flex items-center justify-center bg-black transition-all duration-300 ${
               isFullscreen
                 ? "h-screen"
-                : "aspect-video"
+                : isTheaterMode
+                  ? "w-full max-h-[75vh] aspect-video"
+                  : "w-full aspect-video"
             }`}
           >
             <div
@@ -612,7 +780,7 @@ export default function VideoPlayer() {
                 key={selectedFileId}
                 ref={videoRef}
                 autoPlay
-                onClick={togglePlay}
+                onClick={handleVideoClick}
                 onContextMenu={(e) => e.preventDefault()}
                 onLoadStart={() => setIsLoading(true)}
                 onLoadedMetadata={(e) => {
@@ -651,6 +819,56 @@ export default function VideoPlayer() {
               />
             </div>
 
+            {/* HUD Toast overlay */}
+            {hudToast.visible && (
+              <div
+                key={hudToast.key}
+                className="animate-hud-toast pointer-events-none absolute top-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full glass-card px-4 py-2 text-xs sm:text-sm font-semibold tracking-wide text-white shadow-xl shadow-black/40 border border-white/10"
+              >
+                <span className="text-base">{hudToast.icon}</span>
+                <span>{hudToast.text}</span>
+              </div>
+            )}
+
+            {/* Center Ripple Animation Overlay */}
+            {centerAnim.visible && (
+              <div
+                key={centerAnim.key}
+                className="animate-center-ripple pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
+              >
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-black/60 border border-white/20 text-white backdrop-blur-md shadow-2xl">
+                  {centerAnim.type === "play" && (
+                    <svg className="h-10 w-10 text-green-400 fill-current" viewBox="0 0 24 24">
+                      <path d="m8 5 11 7-11 7V5Z" />
+                    </svg>
+                  )}
+                  {centerAnim.type === "pause" && (
+                    <svg className="h-10 w-10 text-red-500 fill-current" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                    </svg>
+                  )}
+                  {centerAnim.type === "forward" && (
+                    <div className="flex flex-col items-center">
+                      <svg className="h-8 w-8 text-white fill-none stroke-current" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m13 7 5 5-5 5" />
+                        <path d="m6 7 5 5-5 5" />
+                      </svg>
+                      <span className="text-[10px] font-bold tracking-widest mt-0.5">+10s</span>
+                    </div>
+                  )}
+                  {centerAnim.type === "backward" && (
+                    <div className="flex flex-col items-center">
+                      <svg className="h-8 w-8 text-white fill-none stroke-current" strokeWidth="2.5" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 7 6 12l5 5" />
+                        <path d="M18 7l-5 5 5 5" />
+                      </svg>
+                      <span className="text-[10px] font-bold tracking-widest mt-0.5">-10s</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {!isOnline && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 p-6 text-center backdrop-blur-sm z-30 animate-fade-in">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/10 text-rose-500 mb-4 border border-rose-500/20">
@@ -677,7 +895,7 @@ export default function VideoPlayer() {
             )}
 
             {isLoading && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm z-20">
                 <div
                   className={`h-12 w-12 animate-spin rounded-full border-4 border-white/10 sm:h-14 sm:w-14 shadow-lg ${
                     isPlaying
@@ -689,7 +907,7 @@ export default function VideoPlayer() {
             )}
 
             <div
-              className={`absolute inset-x-0 bottom-0 p-3 transition-all duration-400 sm:p-4 ${
+              className={`absolute inset-x-0 bottom-0 p-3 transition-all duration-400 sm:p-4 z-20 ${
                 isFullscreen && !showControls
                   ? "pointer-events-none opacity-0 translate-y-2"
                   : "opacity-100 translate-y-0"
@@ -788,7 +1006,10 @@ export default function VideoPlayer() {
                     }
                     onTouchEnd={hideSeekPreview}
                     onChange={handleSeek}
-                    className={`w-full ${activeAccentClass}`}
+                    className={`h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-white/25 outline-none transition-all duration-150 hover:h-2.5 focus:outline-none ${activeAccentClass}`}
+                    style={{
+                      background: `linear-gradient(to right, ${isPlaying ? '#22c55e' : '#dc2626'} 0%, ${isPlaying ? '#22c55e' : '#dc2626'} ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.2) ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.2) 100%)`
+                    }}
                   />
                 </div>
               )}
@@ -814,8 +1035,8 @@ export default function VideoPlayer() {
                     onClick={togglePlay}
                     className={`flex h-11 w-11 items-center justify-center rounded-full sm:h-12 sm:w-12 ${
                       isPlaying
-                        ? "bg-green-600 hover:bg-green-500"
-                        : "bg-red-600 hover:bg-red-500"
+                        ? "bg-green-600 hover:bg-green-500 shadow-lg shadow-green-500/25"
+                        : "bg-red-600 hover:bg-red-500 shadow-lg shadow-red-500/25"
                     }`}
                   >
                     {isPlaying ? (
@@ -835,100 +1056,153 @@ export default function VideoPlayer() {
                     <SkipForwardIcon />
                   </button>
 
-                  <label
-                    className="flex items-center gap-2 text-sm text-gray-300"
-                    title="Volume"
-                  >
-                    <VolumeIcon />
-                    <input
-                      aria-label="Volume"
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={volume}
-                      onChange={handleVolume}
-                      className={`w-16 sm:w-24 ${activeAccentClass}`}
-                    />
-                  </label>
+                  {/* Volume Expandable Slider Container */}
+                  <div className="group/volume flex items-center gap-1.5 transition-all duration-300">
+                    <button
+                      type="button"
+                      aria-label={volume === 0 ? "Unmute" : "Mute"}
+                      title={volume === 0 ? "Unmute" : "Mute (M)"}
+                      onClick={toggleMute}
+                      className={`frosted-control flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${controlButtonClass}`}
+                    >
+                      {volume === 0 ? (
+                        <Icon>
+                          <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                          <line x1="22" y1="9" x2="16" y2="15" strokeWidth="2" />
+                          <line x1="16" y1="9" x2="22" y2="15" strokeWidth="2" />
+                        </Icon>
+                      ) : volume < 0.5 ? (
+                        <Icon>
+                          <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+                          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" strokeWidth="2" />
+                        </Icon>
+                      ) : (
+                        <VolumeIcon />
+                      )}
+                    </button>
+                    
+                    <div className="w-0 overflow-hidden opacity-0 transition-all duration-300 ease-out group-hover/volume:w-20 sm:group-hover/volume:w-24 group-hover/volume:opacity-100 group-focus-within/volume:w-20 sm:group-focus-within/volume:w-24 group-focus-within/volume:opacity-100">
+                      <input
+                        aria-label="Volume"
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={volume}
+                        onChange={handleVolume}
+                        className={`h-1.5 w-20 cursor-pointer appearance-none rounded-lg bg-white/20 accent-current outline-none sm:w-24 ${activeAccentClass}`}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <label
-                    className="flex items-center gap-2 text-sm text-gray-300"
-                    title="Playback speed"
-                  >
-                    <SpeedIcon />
-                    <select
-                      aria-label="Playback speed"
-                      value={playbackRate}
-                      onChange={handleSpeed}
-                      className={`rounded border px-2 py-2 text-sm outline-none sm:px-3 ${selectClass}`}
+                  {/* Settings Gear Popover Menu */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      aria-label="Settings"
+                      title="Settings"
+                      onClick={() => setIsSettingsOpen(prev => !prev)}
+                      className={`frosted-control flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 transition-transform duration-300 ${isSettingsOpen ? "rotate-45" : ""} ${controlButtonClass}`}
                     >
-                      {speedOptions.map((speed) => (
-                        <option
-                          key={speed}
-                          value={speed}
-                        >
-                          {speed}x
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      <SettingsIcon />
+                    </button>
 
-                  {qualityOptions.length > 1 && (
-                    <label
-                      className="flex items-center gap-2 text-sm text-gray-300"
-                      title="Video quality"
-                    >
-                      <QualityIcon />
-                      <select
-                        aria-label="Video quality"
-                        value={selectedFileId}
-                        onChange={handleQualityChange}
-                        className={`max-w-28 rounded border px-2 py-2 text-sm outline-none sm:max-w-none sm:px-3 ${selectClass}`}
-                      >
-                        {qualityOptions.map((quality) => (
-                          <option
-                            key={quality.driveFileId}
-                            value={quality.driveFileId}
+                    {isSettingsOpen && (
+                      <div className="absolute right-0 bottom-12 z-30 w-72 sm:w-80 rounded-xl glass-card p-4 shadow-2xl border border-white/10 animate-scale-in text-slate-100 flex flex-col gap-4 text-xs">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <span className="font-bold text-sm tracking-wide flex items-center gap-1.5 text-white">
+                            <SettingsIcon /> Playback Settings
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsSettingsOpen(false)}
+                            className="text-gray-400 hover:text-white transition-colors p-1"
                           >
-                            {quality.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
+                            ✕
+                          </button>
+                        </div>
 
-                  {isFullscreen && (
-                    <label
-                      className="flex items-center gap-2 text-sm text-gray-300"
-                      title="Aspect ratio"
-                    >
-                      <AspectRatioIcon />
-                      <select
-                        aria-label="Aspect ratio"
-                        value={aspectRatioMode}
-                        onChange={(e) =>
-                          setAspectRatioMode(
-                            e.target.value
-                          )
-                        }
-                        className={`rounded border px-2 py-2 text-sm outline-none sm:px-3 ${selectClass}`}
-                      >
-                        {aspectRatioOptions.map(
-                          (option) => (
-                            <option
-                              key={option.value}
-                              value={option.value}
-                            >
-                              {option.label}
-                            </option>
-                          )
+                        {/* Speed section */}
+                        <div className="flex flex-col gap-1.5">
+                          <span className="font-semibold text-slate-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                            <SpeedIcon /> Speed
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {speedOptions.map((speed) => (
+                              <button
+                                key={speed}
+                                type="button"
+                                onClick={() => handleSpeedDirect(speed)}
+                                className={`px-2 py-1 rounded text-xs transition-all ${
+                                  playbackRate === speed
+                                    ? isPlaying
+                                      ? "bg-green-600 text-white font-bold shadow-md shadow-green-600/20"
+                                      : "bg-red-600 text-white font-bold shadow-md shadow-red-600/20"
+                                    : "bg-white/5 hover:bg-white/15 text-slate-300"
+                                }`}
+                              >
+                                {speed}x
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Quality section */}
+                        {qualityOptions.length > 1 && (
+                          <div className="flex flex-col gap-1.5">
+                            <span className="font-semibold text-slate-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                              <QualityIcon /> Quality
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {qualityOptions.map((quality) => (
+                                <button
+                                  key={quality.driveFileId}
+                                  type="button"
+                                  onClick={() => handleQualityChangeDirect(quality.driveFileId)}
+                                  className={`px-2 py-1 rounded text-xs transition-all ${
+                                    selectedFileId === quality.driveFileId
+                                      ? isPlaying
+                                        ? "bg-green-600 text-white font-bold shadow-md shadow-green-600/20"
+                                        : "bg-red-600 text-white font-bold shadow-md shadow-red-600/20"
+                                      : "bg-white/5 hover:bg-white/15 text-slate-300"
+                                  }`}
+                                >
+                                  {quality.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         )}
-                      </select>
-                    </label>
-                  )}
+
+                        {/* Aspect Ratio section */}
+                        <div className="flex flex-col gap-1.5">
+                          <span className="font-semibold text-slate-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                            <AspectRatioIcon /> Aspect Ratio
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {aspectRatioOptions.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => handleAspectRatioChangeDirect(option.value)}
+                                className={`px-2 py-1 rounded text-xs transition-all ${
+                                  aspectRatioMode === option.value
+                                    ? isPlaying
+                                      ? "bg-green-600 text-white font-bold shadow-md shadow-green-600/20"
+                                      : "bg-red-600 text-white font-bold shadow-md shadow-red-600/20"
+                                    : "bg-white/5 hover:bg-white/15 text-slate-300"
+                                }`}
+                              >
+                                {option.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <button
                     type="button"
@@ -940,10 +1214,27 @@ export default function VideoPlayer() {
                     <PipIcon />
                   </button>
 
+                  {/* Theater Mode Toggle Button */}
+                  <button
+                    type="button"
+                    aria-label="Theater mode"
+                    title="Theater mode (T)"
+                    onClick={toggleTheaterMode}
+                    className={`frosted-control flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${
+                      isTheaterMode
+                        ? isPlaying
+                          ? "bg-green-600/40 text-green-100 hover:bg-green-600/60 border border-green-500/30"
+                          : "bg-red-600/40 text-red-100 hover:bg-red-600/60 border border-red-500/30"
+                        : controlButtonClass
+                    }`}
+                  >
+                    <TheaterModeIcon />
+                  </button>
+
                   <button
                     type="button"
                     aria-label="Fullscreen"
-                    title="Fullscreen"
+                    title="Fullscreen (F)"
                     onClick={toggleFullscreen}
                     className={`frosted-control flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${controlButtonClass}`}
                   >
@@ -958,3 +1249,4 @@ export default function VideoPlayer() {
     </div>
   );
 }
+
