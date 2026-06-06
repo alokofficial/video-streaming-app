@@ -39,17 +39,17 @@ export default function SiteGate() {
       {/* Gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-rose-50 to-purple-100 dark:from-[#080012] dark:via-[#12001f] dark:to-[#0a0a1a]" />
 
-      {/* Ambient glows */}
-      <div className="absolute top-[-15%] left-[-10%] h-[600px] w-[600px] rounded-full bg-rose-400/20 dark:bg-rose-600/15 blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-15%] right-[-10%] h-[550px] w-[550px] rounded-full bg-violet-400/20 dark:bg-violet-600/15 blur-[140px] pointer-events-none" />
-      <div className="absolute top-[45%] left-[55%] h-[300px] w-[300px] rounded-full bg-pink-300/15 dark:bg-purple-500/10 blur-[100px] pointer-events-none" />
+      {/* Animated floating orbs */}
+      <div className="auth-orb auth-orb-1 top-[-15%] left-[-10%] h-[600px] w-[600px] bg-rose-400/20 dark:bg-rose-600/15 blur-[140px]" />
+      <div className="auth-orb auth-orb-2 bottom-[-15%] right-[-10%] h-[550px] w-[550px] bg-violet-400/20 dark:bg-violet-600/15 blur-[140px]" />
+      <div className="auth-orb auth-orb-3 top-[45%] left-[55%] h-[300px] w-[300px] bg-pink-300/15 dark:bg-purple-500/10 blur-[100px]" />
 
       {/* Lock icon at top-center */}
-      <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
+      <div className="relative z-10 flex w-full max-w-sm flex-col items-center animate-slide-up">
 
         {/* Pulsing lock */}
         <div className="relative mb-8">
-          <div className="absolute inset-0 rounded-full bg-rose-400/30 dark:bg-rose-500/20 blur-xl animate-pulse scale-150 pointer-events-none" />
+          <div className="absolute inset-0 rounded-full bg-rose-400/30 dark:bg-rose-500/20 blur-xl scale-150 pointer-events-none" style={{ animation: 'pulse-glow 3s ease-in-out infinite' }} />
           <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-rose-300/60 dark:border-rose-500/30 bg-white/80 dark:bg-black/30 shadow-2xl backdrop-blur-xl">
             <svg className="h-9 w-9 text-rose-500 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.8">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -84,7 +84,7 @@ export default function SiteGate() {
 
           {/* Error */}
           {error && (
-            <div className="mb-5 flex items-start gap-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-3.5 text-sm text-rose-700 dark:text-rose-300 font-medium">
+            <div className="mb-5 flex items-start gap-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-3.5 text-sm text-rose-700 dark:text-rose-300 font-medium animate-notification">
               <svg className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
@@ -105,7 +105,7 @@ export default function SiteGate() {
               required
               placeholder="Enter the secret access code"
               autoFocus
-              className="w-full rounded-xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all duration-200 focus:border-rose-400 dark:focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm tracking-widest font-mono text-base"
+              className="w-full rounded-xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all duration-200 input-glow text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm tracking-widest font-mono text-base"
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
@@ -115,7 +115,7 @@ export default function SiteGate() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl btn-primary-red p-3.5 text-sm font-bold tracking-wide disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none"
+            className="w-full rounded-xl btn-animated-gradient p-3.5 text-sm font-bold tracking-wide disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none disabled:animation-none"
           >
             {isSubmitting ? "Verifying…" : "Unlock Access →"}
           </button>

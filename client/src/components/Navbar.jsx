@@ -36,6 +36,7 @@ export default function Navbar({
     useState(false);
   const [canGoForward, setCanGoForward] =
     useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const [currentTime, setCurrentTime] = useState(() => {
     const now = new Date();
@@ -62,6 +63,15 @@ export default function Navbar({
 
     const interval = setInterval(updateClock, 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Scroll-aware navbar glow
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const headerTitle = useMemo(() => {
@@ -197,22 +207,22 @@ export default function Navbar({
     onAdminViewUserChange;
 
   return (
-    <nav className="app-panel sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b p-3 backdrop-blur-md transition-all duration-300 sm:p-4">
+    <nav className={`app-panel sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 p-3 backdrop-blur-xl transition-all duration-500 sm:p-4 ${isScrolled ? 'navbar-scrolled' : 'navbar-gradient-border'}`}>
       <Link to="/" className="flex items-center gap-3 min-w-0 flex-1 basis-40 group">
-        <div className="flex flex-col items-center gap-1 shrink-0">
-          <div className="relative h-10 w-10 overflow-hidden rounded-lg border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-black/20 p-0.5 shadow-sm transition-all duration-300 transform group-hover:scale-105 group-hover:border-red-500/30">
+        <div className="flex flex-col items-center gap-1.5 shrink-0">
+          <div className="relative h-11 w-11 overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 bg-black/5 dark:bg-black/20 p-0.5 shadow-lg transition-all duration-300 transform group-hover:scale-110 group-hover:border-red-500/40 group-hover:shadow-[0_0_20px_rgba(244,63,94,0.2)]">
             <img
               src="/logo.png"
               alt="Flow Learn Logo"
-              className="h-full w-full object-cover rounded-md"
+              className="h-full w-full object-cover rounded-lg"
             />
           </div>
-          <span className="text-[9px] font-mono font-medium tracking-tight text-black dark:text-white">
+          <span className="clock-pill text-[9px] font-mono font-semibold tracking-tight text-black dark:text-white/80">
             {currentTime}
           </span>
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-red-500 dark:text-red-400 sm:text-xs sm:tracking-[0.2em] transition-colors group-hover:text-red-400">
+          <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-red-500 dark:text-red-400 sm:text-xs sm:tracking-[0.22em] transition-colors group-hover:text-red-400">
             Flow Learn
           </p>
           <h1 className="truncate text-sm font-bold sm:text-lg leading-tight">
@@ -226,21 +236,21 @@ export default function Navbar({
           <div className="flex items-center gap-2 text-sm sm:gap-4 sm:text-base">
             <Link
               to="/login"
-              className="app-surface app-hover rounded px-3 py-2 font-semibold"
+              className="app-surface app-hover rounded-lg px-4 py-2 font-semibold transition-all duration-200 hover:shadow-md"
             >
               Login
             </Link>
 
             <Link
               to="/register"
-              className="hidden rounded bg-red-600 px-3 py-2 font-semibold sm:inline-block"
+              className="hidden rounded-lg bg-red-600 px-4 py-2 font-semibold sm:inline-block transition-all duration-200 hover:bg-red-500 hover:shadow-lg hover:shadow-red-500/20"
             >
               Register
             </Link>
           </div>
         ) : (
-          <div className="relative flex flex-wrap items-center justify-end gap-2 sm:gap-4">
-            <div className="app-panel flex items-center gap-1 rounded-lg p-1">
+          <div className="relative flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+            <div className="app-panel glass-card flex items-center gap-1 rounded-xl p-1">
               <button
                 type="button"
                 aria-label="Go back"
@@ -289,7 +299,7 @@ export default function Navbar({
             </div>
 
             {showAdminViewSelector && (
-              <div className="app-panel flex max-w-full items-center gap-2 rounded-lg border px-2 py-2">
+              <div className="app-panel glass-card flex max-w-full items-center gap-2 rounded-xl border px-2 py-2">
                 <span className="app-muted hidden text-xs font-semibold md:inline">
                   View as
                 </span>
@@ -301,7 +311,7 @@ export default function Navbar({
                       e.target.value
                     )
                   }
-                  className="app-input max-w-36 rounded border px-2 py-1 text-xs outline-none focus:border-red-500 sm:max-w-52"
+                  className="app-input max-w-36 rounded-lg border px-2 py-1 text-xs outline-none focus:border-red-500 sm:max-w-52"
                 >
                   <option value="">
                     Admin view
@@ -318,7 +328,7 @@ export default function Navbar({
                 </select>
 
                 {Number.isFinite(adminViewCount) && (
-                  <span className="rounded bg-red-600/20 px-2 py-1 text-xs font-semibold text-red-100">
+                  <span className="rounded-md bg-red-600/20 px-2 py-1 text-xs font-semibold text-red-100 border border-red-500/20">
                     {adminViewCount}
                   </span>
                 )}
@@ -328,7 +338,7 @@ export default function Navbar({
             {isAdmin && (
               <Link
                 to="/admin"
-                className="flex items-center gap-1.5 rounded-full border border-red-500/20 bg-linear-to-r from-red-500/10 to-indigo-500/10 px-3.5 py-1.5 text-xs font-semibold text-red-500 shadow-sm transition-all duration-300 hover:from-red-500/20 hover:to-indigo-500/20 hover:border-red-500/40 dark:border-red-500/20 dark:text-red-400 dark:hover:border-red-500/50"
+                className="flex items-center gap-1.5 rounded-full border border-red-500/20 bg-linear-to-r from-red-500/10 to-indigo-500/10 px-3.5 py-1.5 text-xs font-semibold text-red-500 shadow-sm transition-all duration-300 hover:from-red-500/20 hover:to-indigo-500/20 hover:border-red-500/40 hover:shadow-[0_0_15px_rgba(244,63,94,0.15)] dark:border-red-500/20 dark:text-red-400 dark:hover:border-red-500/50"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -357,7 +367,7 @@ export default function Navbar({
                   : "Switch to dark mode"
               }
               onClick={toggleTheme}
-              className="app-surface app-hover flex h-9 w-9 items-center justify-center rounded"
+              className="app-surface flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-300 hover:bg-[var(--app-hover)] hover:shadow-md hover:scale-105"
             >
               {isDarkMode ? (
                 <svg
@@ -401,9 +411,9 @@ export default function Navbar({
               onClick={() =>
                 setIsMenuOpen((current) => !current)
               }
-              className="app-hover flex flex-col items-center gap-1 rounded px-1 py-1 sm:px-2"
+              className="flex flex-col items-center gap-1 rounded-lg px-1 py-1 sm:px-2 transition-all duration-200 hover:bg-[var(--app-hover)]"
             >
-              <span className="app-soft-surface flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 overflow-hidden border border-slate-200 dark:border-white/10 shadow-inner">
+              <span className="avatar-ring flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 overflow-hidden border-2 border-slate-200 dark:border-white/10 shadow-lg transition-all duration-300 hover:shadow-[0_0_15px_rgba(244,63,94,0.2)]">
                 {user?.avatar ? (
                   <img
                     src={user.avatar}
@@ -423,10 +433,10 @@ export default function Navbar({
             </button>
 
             {isMenuOpen && (
-              <div className="app-panel light-shadow absolute right-0 top-14 z-20 w-[calc(100vw-1.5rem)] max-w-72 rounded-lg border p-4 shadow-xl sm:top-16">
+              <div className="app-panel light-shadow absolute right-0 top-14 z-20 w-[calc(100vw-1.5rem)] max-w-72 rounded-xl border p-4 shadow-2xl sm:top-16 glass-card animate-slide-down-menu">
                 <div className="app-border mb-4 border-b pb-4">
                   <div className="flex items-center gap-3">
-                    <span className="app-soft-surface flex h-11 w-11 items-center justify-center rounded-full overflow-hidden border border-slate-200 dark:border-white/10 shadow-inner">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full overflow-hidden border-2 border-slate-200 dark:border-white/10 shadow-lg">
                       {user?.avatar ? (
                         <img
                           src={user.avatar}
@@ -452,36 +462,50 @@ export default function Navbar({
                   </div>
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-1">
                   <Link
                     to="/profile"
                     onClick={() => setIsMenuOpen(false)}
-                    className="app-hover rounded px-3 py-2"
+                    className="rounded-lg px-3 py-2.5 transition-all duration-200 hover:bg-[var(--app-hover)] hover:translate-x-1 flex items-center gap-2.5"
                   >
+                    <svg className="h-4 w-4 app-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
                     User Profile
                   </Link>
 
                   <Link
                     to="/notes"
                     onClick={() => setIsMenuOpen(false)}
-                    className="app-hover rounded px-3 py-2"
+                    className="rounded-lg px-3 py-2.5 transition-all duration-200 hover:bg-[var(--app-hover)] hover:translate-x-1 flex items-center gap-2.5"
                   >
+                    <svg className="h-4 w-4 app-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
                     My Notes
                   </Link>
 
                   <Link
                     to="/change-password"
                     onClick={() => setIsMenuOpen(false)}
-                    className="app-hover rounded px-3 py-2"
+                    className="rounded-lg px-3 py-2.5 transition-all duration-200 hover:bg-[var(--app-hover)] hover:translate-x-1 flex items-center gap-2.5"
                   >
+                    <svg className="h-4 w-4 app-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
                     Change Password
                   </Link>
+
+                  <div className="my-1 h-px bg-[var(--app-border)]" />
 
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="app-hover rounded px-3 py-2 text-left"
+                    className="rounded-lg px-3 py-2.5 text-left transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400 flex items-center gap-2.5"
                   >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
                     Logout
                   </button>
                 </div>

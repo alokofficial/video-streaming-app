@@ -44,10 +44,10 @@ export default function Profile() {
     <div className="app-page">
       <Navbar />
 
-      <div className="mx-auto max-w-xl p-4 sm:p-6">
-        <div className="rounded-xl app-panel p-4 sm:p-6 shadow-2xl border border-slate-200 dark:border-white/5 backdrop-blur-lg">
-          <div className="mb-6 flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-            <span className="relative flex h-20 w-20 sm:h-24 sm:w-24 shrink-0 items-center justify-center rounded-full app-soft-surface overflow-hidden border-2 border-slate-200 dark:border-white/10 shadow-xl">
+      <div className="mx-auto max-w-xl p-4 sm:p-6 animate-slide-up">
+        <div className="gradient-top-border rounded-2xl app-panel p-5 sm:p-7 shadow-2xl border border-slate-200 dark:border-white/5 backdrop-blur-lg">
+          <div className="mb-7 flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+            <span className="relative flex h-20 w-20 sm:h-24 sm:w-24 shrink-0 items-center justify-center rounded-full app-soft-surface overflow-hidden border-2 border-slate-200 dark:border-white/10 shadow-xl transition-all duration-300 hover:shadow-[0_0_25px_var(--app-accent-glow)] hover:scale-105">
               {selectedAvatar ? (
                 <img
                   src={selectedAvatar}
@@ -73,13 +73,19 @@ export default function Profile() {
 
           <form onSubmit={handleSave} className="grid gap-6">
             {successMsg && (
-              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm text-emerald-600 dark:text-emerald-300 font-medium animate-pulse">
+              <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3 text-sm text-emerald-600 dark:text-emerald-300 font-medium animate-notification flex items-center gap-2">
+                <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
                 {successMsg}
               </div>
             )}
 
             {errorMsg && (
-              <div className="rounded-lg bg-rose-500/10 border border-rose-500/30 p-3 text-sm text-rose-600 dark:text-rose-300 font-medium">
+              <div className="rounded-lg bg-rose-500/10 border border-rose-500/30 p-3 text-sm text-rose-600 dark:text-rose-300 font-medium animate-notification flex items-center gap-2">
+                <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
                 {errorMsg}
               </div>
             )}
@@ -91,7 +97,7 @@ export default function Profile() {
               <input
                 type="text"
                 required
-                className="w-full rounded-lg app-soft-surface p-3 border border-slate-300 dark:border-white/10 focus:border-red-500 focus:outline-none transition-all"
+                className="w-full rounded-xl app-soft-surface p-3 border border-slate-300 dark:border-white/10 outline-none transition-all duration-300 input-glow"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
@@ -105,17 +111,20 @@ export default function Profile() {
               <input
                 type="email"
                 disabled
-                className="w-full rounded-lg app-soft-surface p-3 border border-slate-200 dark:border-white/5 opacity-60 cursor-not-allowed"
+                className="w-full rounded-xl app-soft-surface p-3 border border-slate-200 dark:border-white/5 opacity-60 cursor-not-allowed"
                 value={user?.email || ""}
               />
-              <p className="text-[11px] text-gray-500 mt-1">Email cannot be modified.</p>
+              <p className="text-[11px] text-gray-500 mt-1.5">Email cannot be modified.</p>
             </div>
 
             <div>
               <label className="text-sm font-semibold uppercase tracking-wider app-muted block mb-2">
                 User Role
               </label>
-              <div className="capitalize font-semibold text-lg app-soft-surface inline-block px-4 py-2 rounded-lg border border-slate-300 dark:border-white/10">
+              <div className="capitalize font-semibold text-lg app-soft-surface inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10">
+                <svg className="h-4 w-4 app-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                </svg>
                 {user?.role}
               </div>
             </div>
@@ -133,10 +142,10 @@ export default function Profile() {
                       key={opt.id}
                       type="button"
                       onClick={() => setSelectedAvatar(opt.path)}
-                      className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg ${
+                      className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all duration-300 transform hover:scale-105 active:scale-95 shadow-lg ${
                         isSelected
-                          ? "border-red-500 scale-105 ring-4 ring-red-500/20"
-                          : "border-transparent hover:border-red-500/50"
+                          ? "border-[var(--app-accent)] scale-105 ring-4 ring-[var(--app-accent-glow)] shadow-[0_0_20px_var(--app-accent-glow)]"
+                          : "border-transparent hover:border-[var(--app-accent)]/50 hover:shadow-[0_0_15px_var(--app-accent-glow)]"
                       }`}
                       title={opt.label}
                     >
@@ -146,8 +155,8 @@ export default function Profile() {
                         className="h-full w-full object-cover"
                       />
                       {isSelected && (
-                        <div className="absolute inset-0 bg-red-500/10 flex items-center justify-center">
-                          <div className="bg-red-500 text-white rounded-full p-1 shadow-md">
+                        <div className="absolute inset-0 bg-[var(--app-accent)]/10 flex items-center justify-center">
+                          <div className="bg-[var(--app-accent)] text-white rounded-full p-1.5 shadow-lg">
                             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
@@ -163,9 +172,12 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => setSelectedAvatar("")}
-                  className="mt-3 text-xs text-red-400 hover:text-red-300 transition-colors font-medium flex items-center gap-1"
+                  className="mt-3 text-xs text-[var(--app-accent)] hover:text-[var(--app-accent-light)] transition-colors font-medium flex items-center gap-1"
                 >
-                  Clear Avatar & Use Initials
+                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Clear Avatar &amp; Use Initials
                 </button>
               )}
             </div>
@@ -173,7 +185,7 @@ export default function Profile() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-xl btn-primary-red py-3.5 font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-xl btn-animated-gradient py-3.5 font-bold tracking-wide disabled:opacity-50 disabled:cursor-not-allowed disabled:animation-none"
             >
               {isSubmitting ? "Saving Changes..." : "Save Changes"}
             </button>

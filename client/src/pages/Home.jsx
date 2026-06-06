@@ -505,22 +505,33 @@ export default function Home() {
         adminViewCount={visibleContentCount}
       />
 
-      <div className="p-4 sm:p-6">
-        <div className="mb-4 flex flex-col gap-3 sm:mb-8 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <h1 className="text-2xl font-bold sm:text-4xl">
-            {selectedUser
-              ? `${selectedUser.name}'s Library`
-              : "Contents"}
-          </h1>
+      <div className="p-4 sm:p-6 lg:p-8">
+        {/* ── Hero Header ── */}
+        <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:gap-5 lg:flex-row lg:items-end lg:justify-between animate-slide-up">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl">
+              <span className="text-gradient">
+                {selectedUser
+                  ? `${selectedUser.name}'s Library`
+                  : "Contents"}
+              </span>
+            </h1>
+            <div className="accent-line mt-3" />
+            <p className="app-muted mt-3 text-sm sm:text-base max-w-lg">
+              {selectedUser
+                ? "Browsing content visible to this user"
+                : "Your curated learning library"}
+            </p>
+          </div>
 
-          <div className="flex w-full flex-col gap-2.5 sm:flex-row lg:max-w-2xl">
+          <div className="flex w-full flex-col gap-2.5 sm:flex-row lg:max-w-xl">
             <select
               aria-label="Sort content"
               value={sortOption}
               onChange={(e) =>
                 setSortOption(e.target.value)
               }
-              className="w-full rounded-lg border app-border app-surface px-3 py-2.5 text-sm outline-none transition focus:border-red-500 sm:w-44"
+              className="w-full rounded-xl border app-border glass-card px-3 py-2.5 text-sm outline-none transition-all duration-300 input-glow sm:w-44"
             >
               <option value="default">
                 Sort: Default
@@ -540,6 +551,9 @@ export default function Home() {
             </select>
 
             <div className="relative min-w-0 flex-1">
+              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
               <input
                 type="search"
                 placeholder="Search all content..."
@@ -547,7 +561,7 @@ export default function Home() {
                 onChange={(e) =>
                   setSearchTerm(e.target.value)
                 }
-                className="w-full rounded-lg border app-border app-surface px-4 py-3 pr-10 text-sm outline-none transition focus:border-red-500"
+                className="w-full rounded-xl border app-border glass-card pl-10 pr-10 py-3 text-sm outline-none transition-all duration-300 input-glow"
               />
 
               {searchTerm && (
@@ -555,9 +569,9 @@ export default function Home() {
                   type="button"
                   aria-label="Clear search"
                   onClick={() => setSearchTerm("")}
-                  className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full app-soft-surface text-sm font-bold app-muted hover:bg-gray-700"
+                  className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full app-soft-surface text-sm font-bold app-muted hover:bg-gray-700 transition-colors"
                 >
-                  x
+                  ×
                 </button>
               )}
             </div>
@@ -565,27 +579,42 @@ export default function Home() {
         </div>
 
         {!hasVisibleContent && (
-          <p className="app-muted">
-            {selectedUser
-              ? "No videos available for this user."
-              : "No videos available for your account."}
-          </p>
+          <div className="flex flex-col items-center justify-center py-20 animate-slide-up">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl glass-card mb-4">
+              <svg className="h-8 w-8 app-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+            </div>
+            <p className="app-muted text-center text-lg font-medium">
+              {selectedUser
+                ? "No videos available for this user."
+                : "No videos available for your account."}
+            </p>
+          </div>
         )}
 
         {hasVisibleContent && !hasSearchResults && (
-          <p className="app-muted">
-            No content found for "{searchTerm}".
-          </p>
+          <div className="flex flex-col items-center justify-center py-16 animate-slide-up">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl glass-card mb-4">
+              <svg className="h-7 w-7 app-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <p className="app-muted text-center text-lg font-medium">
+              No content found for &ldquo;{searchTerm}&rdquo;
+            </p>
+          </div>
         )}
 
+        {/* ── Pill Tabs ── */}
         {hasSearchResults && (
-          <div className="mb-6 flex gap-3 overflow-x-auto scrollbar-hide border-b app-border pb-3 sm:flex-wrap sm:gap-4">
+          <div className="mb-8 flex gap-2 overflow-x-auto scrollbar-hide pb-1 sm:flex-wrap sm:gap-2.5 animate-slide-up" style={{ animationDelay: '100ms' }}>
             <button
               onClick={() => setActiveTab("All")}
-              className={`shrink-0 px-4 py-2 font-semibold transition-colors ${
+              className={`shrink-0 rounded-full px-5 py-2 text-sm font-semibold transition-all duration-300 ${
                 activeTab === "All"
-                  ? "border-b-2 border-red-500 text-red-500"
-                  : "app-muted hover:text-white"
+                  ? "bg-[var(--app-accent)] text-white shadow-lg shadow-[var(--app-accent-glow)]"
+                  : "glass-card app-muted hover:text-white hover:bg-white/10"
               }`}
             >
               All
@@ -612,15 +641,15 @@ export default function Home() {
                 title={
                   "Drag to rearrange heading"
                 }
-                className={`shrink-0 rounded px-4 py-2 font-semibold transition-colors ${
+                className={`shrink-0 rounded-full px-5 py-2 text-sm font-semibold transition-all duration-300 ${
                   activeTab === category
-                    ? "border-b-2 border-red-500 text-red-500"
-                    : "app-muted hover:text-white"
+                    ? "bg-[var(--app-accent)] text-white shadow-lg shadow-[var(--app-accent-glow)]"
+                    : "glass-card app-muted hover:text-white hover:bg-white/10"
                 } ${
                   "cursor-grab active:cursor-grabbing"
                 } ${
                   draggedCategory === category
-                    ? "app-soft-surface opacity-60"
+                    ? "opacity-50 scale-95"
                     : ""
                 }`}
               >
@@ -630,7 +659,8 @@ export default function Home() {
           </div>
         )}
 
-        <div className="grid gap-10">
+        {/* ── Content Grid ── */}
+        <div className="grid gap-12">
           {categories
             .filter((category) => activeTab === "All" || activeTab === category)
             .map(
@@ -639,37 +669,43 @@ export default function Home() {
               const isPdfGroup = category === "PDFs" || categoryItems.every(item => item.contentType === "pdf");
 
               return (
-                <section key={category}>
-                  <h2 className="mb-4 text-2xl font-bold sm:mb-5 sm:text-3xl border-b border-white/10 pb-2">
-                    {category}
-                  </h2>
+                <section key={category} className="animate-slide-up">
+                  <div className="flex items-center gap-3 mb-5 sm:mb-6">
+                    <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+                      {category}
+                    </h2>
+                    <div className="flex-1 h-px bg-gradient-to-r from-[var(--app-border)] to-transparent" />
+                    <span className="glass-card rounded-full px-3 py-1 text-xs font-semibold app-muted">
+                      {categoryItems.length} {categoryItems.length === 1 ? 'item' : 'items'}
+                    </span>
+                  </div>
 
                   {isPdfGroup ? (
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-2.5 stagger-enter">
                       {categoryItems.map((item) => (
                         <Link
                           key={`${item.contentType}-${item._id}`}
                           to={item.href}
-                          className="group block"
+                          className="group block animate-slide-up"
                         >
-                          <div className="flex items-center gap-4 rounded-xl border border-slate-200 dark:border-white/5 app-panel p-3 shadow-md hover:shadow-xl dark:shadow-black/50 transition-all duration-300 hover:border-red-500/30 hover:bg-slate-900/40">
+                          <div className="pdf-accent-bar flex items-center gap-4 rounded-xl border border-slate-200 dark:border-white/5 glass-card p-3.5 card-hover-glow">
                             {/* Thumbnail */}
                             <div className="relative h-14 w-20 sm:h-16 sm:w-24 shrink-0 overflow-hidden rounded-lg">
                               <img
                                 src={item.thumbnail}
                                 alt={item.title}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                               />
                             </div>
 
                             {/* Details */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <h3 className="text-sm sm:text-base font-semibold text-white truncate group-hover:text-red-500 transition-colors">
+                                <h3 className="text-sm sm:text-base font-semibold truncate group-hover:text-[var(--app-accent)] transition-colors duration-300">
                                   {item.title}
                                 </h3>
                                 <span
-                                  className={`rounded px-1.5 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white shadow-sm shrink-0 ${
+                                  className={`rounded-md px-2 py-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border text-white shadow-sm shrink-0 ${
                                     item.contentType === "youtube"
                                       ? "bg-red-600/70 border-red-500/30"
                                       : item.contentType === "pdf"
@@ -685,15 +721,15 @@ export default function Home() {
                                 </span>
                               </div>
                               {item.description && (
-                                <p className="mt-1 text-xs text-slate-400 dark:text-slate-400 line-clamp-1">
+                                <p className="mt-1 text-xs text-slate-400 line-clamp-1">
                                   {item.description}
                                 </p>
                               )}
                             </div>
 
                             {/* Arrow Icon */}
-                            <div className="text-slate-500 group-hover:text-red-500 transition-colors pr-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:translate-x-1 transition-transform">
+                            <div className="text-slate-500 group-hover:text-[var(--app-accent)] transition-all duration-300 pr-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 sm:w-5 sm:h-5 transform group-hover:translate-x-1.5 transition-transform duration-300">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                               </svg>
                             </div>
@@ -706,39 +742,48 @@ export default function Home() {
                         <button
                           type="button"
                           onClick={() => handleOpenAddModal(category, "PDF", "pdf")}
-                          className="flex items-center gap-4 rounded-xl border border-dashed border-slate-400/30 dark:border-white/10 p-3 hover:border-red-500/50 hover:bg-slate-900/20 transition-all duration-300 text-slate-400 hover:text-red-500 justify-center group cursor-pointer"
+                          className="flex items-center gap-4 rounded-xl border-2 border-dashed border-slate-400/20 dark:border-white/10 p-3.5 hover:border-[var(--app-accent)]/50 hover:bg-[var(--app-accent)]/5 transition-all duration-300 text-slate-400 hover:text-[var(--app-accent)] justify-center group cursor-pointer animate-border-pulse"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 group-hover:scale-110 transition-transform">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                           </svg>
-                          <span className="text-sm font-semibold">Add PDF to "{category}"</span>
+                          <span className="text-sm font-semibold">Add PDF to &ldquo;{category}&rdquo;</span>
                         </button>
                       )}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 stagger-enter">
                       {categoryItems.map((item) => (
                         <Link
                           key={`${item.contentType}-${item._id}`}
                           to={item.href}
-                          className="group"
+                          className="group animate-slide-up"
                         >
-                          <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-white/5 app-panel aspect-video shadow-md hover:shadow-2xl dark:shadow-black/50 transition-all duration-300 transform hover:-translate-y-1 hover:border-red-500/30">
-                            {/* Video Thumbnail */}
+                          <div className="relative overflow-hidden rounded-2xl border border-[var(--app-card-border)] aspect-video card-hover-glow gradient-border transition-all duration-400 transform hover:-translate-y-1.5">
+                            {/* Video Thumbnail with Ken Burns */}
                             <img
                               src={item.thumbnail}
                               alt={item.title}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              className="w-full h-full object-cover transition-transform duration-[8000ms] ease-out group-hover:scale-110"
                             />
+
+                            {/* Play Overlay */}
+                            <div className="play-overlay">
+                              <div className="play-icon-circle">
+                                <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                              </div>
+                            </div>
 
                             {/* Video Type Badge */}
                             <span
-                              className={`absolute top-3 right-3 z-10 rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-md border border-white/20 text-white shadow-sm ${
+                              className={`absolute top-3 right-3 z-10 rounded-lg px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider backdrop-blur-xl border text-white shadow-md ${
                                 item.contentType === "youtube"
-                                  ? "bg-red-600/70 border-red-500/30"
+                                  ? "bg-red-600/80 border-red-500/30"
                                   : item.contentType === "pdf"
-                                    ? "bg-teal-600/70 border-teal-500/30"
-                                    : "bg-blue-600/70 border-blue-500/30"
+                                    ? "bg-teal-600/80 border-teal-500/30"
+                                    : "bg-blue-600/80 border-blue-500/30"
                               }`}
                             >
                               {item.contentType === "youtube"
@@ -749,12 +794,12 @@ export default function Home() {
                             </span>
 
                             {/* Hover Info Overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                              <h4 className="text-sm font-extrabold text-white leading-tight transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-all duration-400 pointer-events-none">
+                              <h4 className="text-sm font-extrabold text-white leading-tight transform translate-y-3 group-hover:translate-y-0 transition-transform duration-400 drop-shadow-lg">
                                 {item.title}
                               </h4>
                               {item.description && (
-                                <p className="mt-1 text-[11px] text-white/70 line-clamp-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 delay-75">
+                                <p className="mt-1.5 text-[11px] text-white/70 line-clamp-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-400 delay-75">
                                   {item.description}
                                 </p>
                               )}
@@ -768,15 +813,15 @@ export default function Home() {
                         <button
                           type="button"
                           onClick={() => handleOpenAddModal(category, category === "YouTube" ? "Protected YouTube Videos" : "Featured", category === "YouTube" ? "youtube" : "drive")}
-                          className="group relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 dark:border-white/10 aspect-video flex flex-col items-center justify-center gap-2 hover:border-red-500/50 hover:bg-slate-900/30 transition-all duration-300 cursor-pointer"
+                          className="group relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 dark:border-white/10 aspect-video flex flex-col items-center justify-center gap-3 hover:border-[var(--app-accent)]/50 hover:bg-[var(--app-accent)]/5 transition-all duration-300 cursor-pointer animate-border-pulse"
                         >
-                          <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-slate-800 border border-slate-700/50 group-hover:bg-red-500/10 group-hover:border-red-500/30 transition-all duration-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400 group-hover:text-red-500 transition-colors">
+                          <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl glass-card group-hover:bg-[var(--app-accent)]/10 group-hover:border-[var(--app-accent)]/30 transition-all duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 sm:w-7 sm:h-7 text-slate-400 group-hover:text-[var(--app-accent)] transition-colors">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                             </svg>
                           </div>
-                          <span className="text-xs font-bold text-slate-400 group-hover:text-red-500 transition-colors px-4 text-center">
-                            Add to "{category}"
+                          <span className="text-xs font-bold text-slate-400 group-hover:text-[var(--app-accent)] transition-colors px-4 text-center">
+                            Add to &ldquo;{category}&rdquo;
                           </span>
                         </button>
                       )}

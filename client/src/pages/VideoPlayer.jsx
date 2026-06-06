@@ -591,7 +591,7 @@ export default function VideoPlayer() {
           onMouseMove={revealControls}
           onTouchStart={revealControls}
           onKeyDown={revealControls}
-          className={`w-full max-w-6xl overflow-hidden bg-gray-950 sm:rounded-xl ${
+          className={`w-full max-w-6xl overflow-hidden bg-gray-950 sm:rounded-2xl sm:shadow-2xl sm:shadow-black/60 ${
             isFullscreen
               ? "max-w-none rounded-none"
               : ""
@@ -677,30 +677,31 @@ export default function VideoPlayer() {
             )}
 
             {isLoading && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                 <div
-                  className={`h-12 w-12 animate-spin rounded-full border-4 border-white/20 sm:h-14 sm:w-14 ${
+                  className={`h-12 w-12 animate-spin rounded-full border-4 border-white/10 sm:h-14 sm:w-14 shadow-lg ${
                     isPlaying
-                      ? "border-t-green-500"
-                      : "border-t-red-600"
+                      ? "border-t-green-500 shadow-green-500/20"
+                      : "border-t-red-600 shadow-red-600/20"
                   }`}
                 />
               </div>
             )}
 
             <div
-              className={`absolute inset-x-0 bottom-0 bg-linear-to-t from-black via-black/80 to-transparent p-3 transition-opacity duration-300 sm:p-4 ${
+              className={`absolute inset-x-0 bottom-0 p-3 transition-all duration-400 sm:p-4 ${
                 isFullscreen && !showControls
-                  ? "pointer-events-none opacity-0"
-                  : "opacity-100"
+                  ? "pointer-events-none opacity-0 translate-y-2"
+                  : "opacity-100 translate-y-0"
               }`}
+              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.3) 70%, transparent 100%)' }}
             >
               {!isFullscreen ? (
                 <div className="mb-3">
-                  <p className="line-clamp-1 text-base font-semibold sm:text-lg">
+                  <p className="line-clamp-1 text-base font-bold sm:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                     {videoTitle}
                   </p>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-gray-400 font-medium">
                     {formatTime(currentTime)} /{" "}
                     {formatTime(duration)}
                   </p>
@@ -799,7 +800,7 @@ export default function VideoPlayer() {
                     aria-label="Back 10 seconds"
                     title="Back 10 seconds"
                     onClick={() => skip(-10)}
-                    className={`flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${controlButtonClass}`}
+                    className={`frosted-control flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${controlButtonClass}`}
                   >
                     <SkipBackIcon />
                   </button>
@@ -829,7 +830,7 @@ export default function VideoPlayer() {
                     aria-label="Forward 10 seconds"
                     title="Forward 10 seconds"
                     onClick={() => skip(10)}
-                    className={`flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${controlButtonClass}`}
+                    className={`frosted-control flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${controlButtonClass}`}
                   >
                     <SkipForwardIcon />
                   </button>
@@ -934,7 +935,7 @@ export default function VideoPlayer() {
                     aria-label="Picture in picture"
                     title="Picture in picture"
                     onClick={togglePictureInPicture}
-                    className={`flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${controlButtonClass}`}
+                    className={`frosted-control flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${controlButtonClass}`}
                   >
                     <PipIcon />
                   </button>
@@ -944,7 +945,7 @@ export default function VideoPlayer() {
                     aria-label="Fullscreen"
                     title="Fullscreen"
                     onClick={toggleFullscreen}
-                    className={`flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${controlButtonClass}`}
+                    className={`frosted-control flex h-9 w-9 items-center justify-center rounded-full sm:h-10 sm:w-10 ${controlButtonClass}`}
                   >
                     <FullscreenIcon />
                   </button>

@@ -30,13 +30,13 @@ export default function Login() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
-      {/* Beautiful background — light and dark both look great */}
+      {/* Beautiful background */}
       <div className="absolute inset-0 bg-gradient-to-br from-rose-100 via-slate-100 to-indigo-100 dark:from-[#0a0118] dark:via-[#0f0c29] dark:to-[#130a2a]" />
 
-      {/* Ambient glowing orbs */}
-      <div className="absolute top-[-10%] left-[-5%] h-[500px] w-[500px] rounded-full bg-rose-400/30 dark:bg-rose-500/20 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-5%] h-[450px] w-[450px] rounded-full bg-indigo-400/30 dark:bg-indigo-600/20 blur-[120px] pointer-events-none" />
-      <div className="absolute top-[40%] left-[55%] h-[300px] w-[300px] rounded-full bg-pink-300/20 dark:bg-purple-600/15 blur-[100px] pointer-events-none" />
+      {/* Animated floating orbs */}
+      <div className="auth-orb auth-orb-1 top-[-10%] left-[-5%] h-[500px] w-[500px] bg-rose-400/30 dark:bg-rose-500/20 blur-[120px]" />
+      <div className="auth-orb auth-orb-2 bottom-[-10%] right-[-5%] h-[450px] w-[450px] bg-indigo-400/30 dark:bg-indigo-600/20 blur-[120px]" />
+      <div className="auth-orb auth-orb-3 top-[40%] left-[55%] h-[300px] w-[300px] bg-pink-300/20 dark:bg-purple-600/15 blur-[100px]" />
 
       {/* Subtle mesh/noise texture overlay */}
       <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.04]"
@@ -45,7 +45,7 @@ export default function Login() {
         }}
       />
 
-      <div className="relative w-full max-w-[420px] z-10">
+      <div className="relative w-full max-w-[420px] z-10 animate-slide-up">
         {/* Glass card */}
         <form
           onSubmit={handleLogin}
@@ -55,7 +55,7 @@ export default function Login() {
           <div className="mb-8 text-center">
             <Link to="/" className="inline-flex flex-col items-center gap-3 group">
               <div
-                className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl border-2 border-white dark:border-white/20 bg-white dark:bg-black/30 p-1.5 shadow-xl transition-all duration-300 transform group-hover:scale-105"
+                className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl border-2 border-white dark:border-white/20 bg-white dark:bg-black/30 p-1.5 shadow-xl transition-all duration-300 transform group-hover:scale-105 group-hover:shadow-[0_0_30px_rgba(239,68,68,0.2)]"
                 style={{ boxShadow: "0 0 0 4px rgba(239,68,68,0.15), 0 8px 24px rgba(0,0,0,0.12)" }}
               >
                 <img
@@ -86,7 +86,7 @@ export default function Login() {
           </div>
 
           {errorMessage && (
-            <div className="mb-5 flex items-start gap-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-3.5 text-sm text-rose-700 dark:text-rose-300 font-medium">
+            <div className="mb-5 flex items-start gap-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-3.5 text-sm text-rose-700 dark:text-rose-300 font-medium animate-notification">
               <svg className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
@@ -106,7 +106,7 @@ export default function Login() {
               type="email"
               required
               placeholder="you@example.com"
-              className="w-full rounded-xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all duration-200 focus:border-rose-400 dark:focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 dark:focus:ring-rose-500/10 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
+              className="w-full rounded-xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all duration-200 input-glow text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -124,7 +124,7 @@ export default function Login() {
               type="password"
               required
               placeholder="Enter your password"
-              className="w-full rounded-xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all duration-200 focus:border-rose-400 dark:focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 dark:focus:ring-rose-500/10 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
+              className="w-full rounded-xl border-2 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm outline-none transition-all duration-200 input-glow text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -134,7 +134,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl btn-primary-red p-3.5 text-sm font-bold tracking-wide disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none"
+            className="w-full rounded-xl btn-animated-gradient p-3.5 text-sm font-bold tracking-wide disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none disabled:animation-none"
           >
             {isSubmitting ? "Signing in…" : "Sign In →"}
           </button>
