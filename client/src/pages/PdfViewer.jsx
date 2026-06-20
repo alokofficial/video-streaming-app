@@ -11,7 +11,20 @@ export default function PdfViewer() {
   const [documentDesc, setDocumentDesc] = useState("");
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef(null);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const isTouchDevice =
+        "ontouchstart" in window ||
+        navigator.maxTouchPoints > 0 ||
+        navigator.msMaxTouchPoints > 0;
+      const isMobileUA = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      setIsMobile(isTouchDevice || isMobileUA);
+    };
+    checkMobile();
+  }, []);
 
   const fetchDocDetails = useCallback(async () => {
     try {
@@ -147,6 +160,18 @@ export default function PdfViewer() {
           </Link>
           
           <div className="flex items-center gap-3">
+            <a
+              href={documentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 transition cursor-pointer"
+              title="Open PDF in new tab"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+              </svg>
+              <span>Open in New Tab</span>
+            </a>
             <button
               onClick={toggleFullscreen}
               className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-gray-300 hover:bg-gray-800 transition border border-white/5 cursor-pointer"
@@ -179,10 +204,32 @@ export default function PdfViewer() {
           {documentDesc && <p className="mt-2 text-sm text-gray-400">{documentDesc}</p>}
         </div>
 
+        {isMobile && (
+          <div className="mb-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 p-4 text-sm text-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-indigo-400 shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0 1 18 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+              <span>
+                <strong>Mobile Viewer Tip:</strong> If you cannot scroll or change pages on your mobile device, please tap "Open in New Tab" to view all pages natively.
+              </span>
+            </div>
+            <a
+              href={documentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-500 transition text-center"
+            >
+              Open PDF
+            </a>
+          </div>
+        )}
+
         <div 
           ref={containerRef}
           onContextMenu={(e) => isNormalUser && e.preventDefault()}
-          className={`overflow-hidden transition-all duration-300 ${
+          style={{ WebkitOverflowScrolling: "touch" }}
+          className={`overflow-y-auto transition-all duration-300 ${
             isFullscreen 
               ? "fixed inset-0 z-50 w-screen h-screen bg-black rounded-none border-none" 
               : "relative w-full aspect-[4/3] rounded-2xl md:aspect-auto md:h-[75vh] border border-white/5 app-panel shadow-xl"

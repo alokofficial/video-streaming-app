@@ -478,23 +478,35 @@ export default function Home() {
   const fetchVideos = useCallback(async () => {
     try {
       const [
-        { data: driveVideos },
-        { data: protectedYoutubeVideos },
-        { data: pdfDocuments },
-        usersResponse,
+        driveVideosRes,
+        protectedYoutubeVideosRes,
+        pdfDocumentsRes,
+        usersRes,
       ] = await Promise.all([
-        API.get("/videos"),
-        API.get("/youtube"),
-        API.get("/documents"),
+        API.get("/videos").catch((err) => {
+          console.error("Failed to fetch videos:", err);
+          return { data: [] };
+        }),
+        API.get("/youtube").catch((err) => {
+          console.error("Failed to fetch youtube videos:", err);
+          return { data: [] };
+        }),
+        API.get("/documents").catch((err) => {
+          console.error("Failed to fetch documents:", err);
+          return { data: [] };
+        }),
         isAdmin
-          ? API.get("/auth/users")
+          ? API.get("/auth/users").catch((err) => {
+              console.error("Failed to fetch users:", err);
+              return { data: [] };
+            })
           : Promise.resolve({ data: [] }),
       ]);
 
-      setVideos(driveVideos);
-      setYoutubeVideos(protectedYoutubeVideos);
-      setDocuments(pdfDocuments);
-      setUsers(usersResponse.data);
+      setVideos(driveVideosRes.data || []);
+      setYoutubeVideos(protectedYoutubeVideosRes.data || []);
+      setDocuments(pdfDocumentsRes.data || []);
+      setUsers(usersRes.data || []);
     } catch (error) {
       console.log(error);
     }
