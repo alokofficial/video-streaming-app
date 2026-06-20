@@ -31,8 +31,8 @@ export const SiteGateProvider = ({ children }) => {
         // Gate is off — always unlocked
         setIsUnlocked(true);
       } else {
-        // Gate is on — check session storage
-        const storedUnlocked = sessionStorage.getItem(STORAGE_KEY) === "true";
+        // Gate is on — check local storage
+        const storedUnlocked = localStorage.getItem(STORAGE_KEY) === "true";
         setIsUnlocked(storedUnlocked);
       }
     } catch {
@@ -83,7 +83,7 @@ export const SiteGateProvider = ({ children }) => {
   }, [fontFamily]);
 
   const unlock = () => {
-    sessionStorage.setItem(STORAGE_KEY, "true");
+    localStorage.setItem(STORAGE_KEY, "true");
     setIsUnlocked(true);
   };
 

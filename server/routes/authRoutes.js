@@ -16,6 +16,7 @@ import {
   setSiteGate,
   getActivityLogs,
   clearActivityLogs,
+  adminChangePassword,
 } from "../controllers/authController.js";
 import {
   protect,
@@ -55,6 +56,12 @@ router.delete(
   protect,
   authorizeRoles("admin"),
   deleteUser
+);
+router.put(
+  "/users/:id/password",
+  protect,
+  authorizeRoles("admin"),
+  adminChangePassword
 );
 
 // Site Gate — public

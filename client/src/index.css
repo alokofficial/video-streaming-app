@@ -717,3 +717,10 @@ button, a, [role="button"] {
   animation: toast-anim 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Restrict PDF printing for normal users */
+@media print {
+  body.no-print,
+  body.no-print * {
+    display: none !important;
+  }
+}

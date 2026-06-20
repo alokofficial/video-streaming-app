@@ -192,6 +192,14 @@ export default function Admin() {
 
   const [newUserRole, setNewUserRole] =
     useState("user");
+  const [changingPasswordUserId, setChangingPasswordUserId] =
+    useState(null);
+  const [adminNewPassword, setAdminNewPassword] =
+    useState("");
+  const [passwordChangeError, setPasswordChangeError] =
+    useState("");
+  const [passwordChangeSuccess, setPasswordChangeSuccess] =
+    useState("");
 
   const [title, setTitle] =
     useState("");
@@ -785,6 +793,34 @@ export default function Admin() {
     }
   };
 
+  const handleAdminChangePassword = async (e, userId) => {
+    e.preventDefault();
+    setPasswordChangeError("");
+    setPasswordChangeSuccess("");
+
+    if (!adminNewPassword || adminNewPassword.length < 8) {
+      setPasswordChangeError("Password must be at least 8 characters");
+      return;
+    }
+
+    try {
+      await API.put(`/auth/users/${userId}/password`, {
+        password: adminNewPassword
+      });
+
+      setPasswordChangeSuccess("Updated successfully!");
+      setAdminNewPassword("");
+      setTimeout(() => {
+        setChangingPasswordUserId(null);
+        setPasswordChangeSuccess("");
+        fetchUsers();
+      }, 1000);
+    } catch (error) {
+      console.log(error);
+      setPasswordChangeError(getErrorMessage(error));
+    }
+  };
+
   const resetDocForm = () => {
     setDocTitle("");
     setDocDescription("");
@@ -1160,18 +1196,74 @@ export default function Admin() {
                         {formatDate(user.createdAt)}
                       </td>
                       <td className="p-4">
-                        <button
-                          type="button"
-                          disabled={
-                            user.id === currentUser?.id
-                          }
-                          onClick={() =>
-                            handleDeleteUser(user)
-                          }
-                          className="rounded-xl btn-primary-red px-3 py-2 font-bold disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none"
-                        >
-                          Delete
-                        </button>
+                        {changingPasswordUserId === user.id ? (
+                          <div className="flex flex-col gap-1.5">
+                            <form onSubmit={(e) => handleAdminChangePassword(e, user.id)} className="flex items-center gap-2">
+                              <input
+                                type="password"
+                                placeholder="Min 8 characters"
+                                value={adminNewPassword}
+                                onChange={(e) => {
+                                  setAdminNewPassword(e.target.value);
+                                  if (passwordChangeError) setPasswordChangeError("");
+                                }}
+                                className="rounded border border-slate-300 dark:border-white/10 app-soft-surface px-2 py-1 text-xs outline-none focus:border-red-500"
+                                autoFocus
+                              />
+                              <button
+                                type="submit"
+                                className="rounded bg-teal-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-teal-500 cursor-pointer"
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setChangingPasswordUserId(null);
+                                  setAdminNewPassword("");
+                                  setPasswordChangeError("");
+                                  setPasswordChangeSuccess("");
+                                }}
+                                className="rounded bg-gray-600 px-2 py-1 text-xs font-bold text-white hover:bg-gray-500 cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </form>
+                            {passwordChangeError && (
+                              <span className="text-[10px] text-red-500 font-semibold">{passwordChangeError}</span>
+                            )}
+                            {passwordChangeSuccess && (
+                              <span className="text-[10px] text-green-500 font-semibold">{passwordChangeSuccess}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setChangingPasswordUserId(user.id);
+                                setAdminNewPassword("");
+                                setPasswordChangeError("");
+                                setPasswordChangeSuccess("");
+                              }}
+                              className="rounded-xl btn-primary-blue px-3 py-2 font-bold text-[12px] cursor-pointer"
+                            >
+                              Password
+                            </button>
+                            <button
+                              type="button"
+                              disabled={
+                                user.id === currentUser?.id
+                              }
+                              onClick={() =>
+                                handleDeleteUser(user)
+                              }
+                              className="rounded-xl btn-primary-red px-3 py-2 font-bold disabled:cursor-not-allowed disabled:opacity-50 disabled:transform-none text-[12px] cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

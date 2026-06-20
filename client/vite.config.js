@@ -71,7 +71,7 @@ export default defineConfig({
           },
           // Cache API queries for gate status, content lists, and notes
           {
-            urlPattern: /\/api\/(auth\/site-gate|videos|youtube|documents|notes)/i,
+            urlPattern: /\/api\/(auth\/site-gate$|videos$|youtube$|documents$|notes$)/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-metadata-cache',

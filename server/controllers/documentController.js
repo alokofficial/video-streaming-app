@@ -137,7 +137,7 @@ export const viewDocument = async (req, res) => {
       });
     }
 
-    if (req.user.role !== "admin" && isDownloadLikeRequest(req)) {
+    if (req.user.role !== "admin" && isDownloadLikeRequest(req) && req.query.inline !== "true") {
       return res.status(403).json({
         message: "Download is not allowed",
       });

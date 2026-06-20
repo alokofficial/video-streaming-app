@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
 import API from "../services/api";
 
 export default function PdfViewer() {
   const { fileId } = useParams();
+  const [searchParams] = useSearchParams();
+  const isFullscreenView = searchParams.get("view") === "fullscreen";
   const { token, isAdmin } = useAuth();
+  const isNormalUser = !isAdmin;
   const [documentTitle, setDocumentTitle] = useState("Loading Document...");
   const [documentDesc, setDocumentDesc] = useState("");
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -95,6 +98,28 @@ export default function PdfViewer() {
     };
   }, [isFullscreen]);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (isNormalUser && (e.ctrlKey || e.metaKey) && e.key === "p") {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [isNormalUser]);
+
+  useEffect(() => {
+    if (isNormalUser) {
+      document.body.classList.add("no-print");
+      return () => {
+        document.body.classList.remove("no-print");
+      };
+    }
+  }, [isNormalUser]);
+
   const toggleFullscreen = async () => {
     if (!containerRef.current) return;
 
@@ -143,8 +168,34 @@ export default function PdfViewer() {
     }
   };
 
-  const isNormalUser = !isAdmin;
-  const documentUrl = `${import.meta.env.VITE_API_URL}/documents/view/${fileId}?token=${encodeURIComponent(token)}${isNormalUser ? "#toolbar=0&navpanes=0" : ""}`;
+  const documentUrl = `${import.meta.env.VITE_API_URL}/documents/view/${fileId}?token=${encodeURIComponent(token)}&inline=true${isNormalUser ? "#toolbar=0&navpanes=0" : ""}`;
+  const openInNewTabUrl = isNormalUser
+    ? `/document/${fileId}?view=fullscreen`
+    : documentUrl;
+
+  if (isFullscreenView) {
+    return (
+      <div 
+        onContextMenu={(e) => isNormalUser && e.preventDefault()}
+        className="w-screen h-screen bg-black overflow-hidden relative"
+      >
+        {!isOnline ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 p-6 text-center z-30">
+            <h3 className="text-xl font-bold text-white mb-2">You are Offline</h3>
+            <p className="text-sm text-slate-400">Viewing documents requires an active internet connection.</p>
+          </div>
+        ) : isNormalUser ? (
+          <CanvasPdfViewer url={documentUrl} />
+        ) : (
+          <iframe
+            src={documentUrl}
+            className="w-full h-full border-none bg-white"
+            title={documentTitle}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -161,7 +212,7 @@ export default function PdfViewer() {
           
           <div className="flex items-center gap-3">
             <a
-              href={documentUrl}
+              href={openInNewTabUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-500 transition cursor-pointer"
@@ -215,7 +266,7 @@ export default function PdfViewer() {
               </span>
             </div>
             <a
-              href={documentUrl}
+              href={openInNewTabUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-500 transition text-center"
@@ -270,6 +321,8 @@ export default function PdfViewer() {
                 Viewing documents requires an active internet connection. Please reconnect to resume viewing.
               </p>
             </div>
+          ) : isNormalUser ? (
+            <CanvasPdfViewer url={documentUrl} />
           ) : (
             <iframe
               src={documentUrl}
@@ -279,6 +332,138 @@ export default function PdfViewer() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function CanvasPdfViewer({ url }) {
+  const [pdf, setPdf] = useState(null);
+  const [numPages, setNumPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    const loadPdf = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const pdfjsLib = window.pdfjsLib;
+        if (!pdfjsLib) {
+          throw new Error("PDF.js library not loaded yet.");
+        }
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        
+        const loadingTask = pdfjsLib.getDocument({ url });
+        const loadedPdf = await loadingTask.promise;
+        if (active) {
+          setPdf(loadedPdf);
+          setNumPages(loadedPdf.numPages);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("PDF load error:", err);
+        if (active) {
+          setError(err.message || "Failed to load document");
+          setLoading(false);
+        }
+      }
+    };
+
+    loadPdf();
+
+    return () => {
+      active = false;
+    };
+  }, [url]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-gray-400 bg-slate-900/50 w-full h-full">
+        <svg className="animate-spin h-8 w-8 text-teal-500 mb-3" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        <span>Preparing secure preview...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-rose-400 bg-rose-500/5 w-full h-full border border-rose-500/10">
+        <span>Failed to load document preview. Please refresh or try again.</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-6 p-4 overflow-y-auto bg-slate-950 w-full h-full max-w-full">
+      {Array.from({ length: numPages }, (_, i) => i + 1).map((pageNum) => (
+        <CanvasPdfPage key={pageNum} pdf={pdf} pageNum={pageNum} />
+      ))}
+    </div>
+  );
+}
+
+function CanvasPdfPage({ pdf, pageNum }) {
+  const canvasRef = useRef(null);
+  const renderTaskRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    const renderPage = async () => {
+      try {
+        const page = await pdf.getPage(pageNum);
+        const canvas = canvasRef.current;
+        if (!canvas || !active) return;
+
+        // Dynamic viewport scale fitting
+        const parentWidth = canvas.parentElement ? canvas.parentElement.clientWidth - 32 : 800;
+        const baseViewport = page.getViewport({ scale: 1.0 });
+        const scale = parentWidth > 0 ? (parentWidth / baseViewport.width) : 1.5;
+        const viewport = page.getViewport({ scale: Math.min(scale, 1.8) });
+
+        const context = canvas.getContext("2d");
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+
+        if (renderTaskRef.current) {
+          renderTaskRef.current.cancel();
+        }
+
+        const task = page.render(renderContext);
+        renderTaskRef.current = task;
+        await task.promise;
+      } catch (err) {
+        if (err.name !== "RenderingCancelledException") {
+          console.error("Page render error:", err);
+        }
+      }
+    };
+
+    renderPage();
+
+    return () => {
+      active = false;
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+      }
+    };
+  }, [pdf, pageNum]);
+
+  return (
+    <div className="w-full flex justify-center bg-slate-900/30 p-2 rounded-xl border border-white/5">
+      <canvas 
+        ref={canvasRef} 
+        className="shadow-2xl rounded-lg bg-white max-w-full h-auto select-none" 
+        style={{ pointerEvents: "none" }}
+      />
     </div>
   );
 }

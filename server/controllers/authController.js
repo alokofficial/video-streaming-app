@@ -763,3 +763,45 @@ export const clearActivityLogs = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ADMIN — change user password directly
+export const adminChangePassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!password || password.trim().length < 8) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { password: hashedPassword },
+      { returnDocument: "after" }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    await logActivity({
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      action: "ADMIN_CHANGE_PASSWORD",
+      details: `Admin changed password for user: ${user.name} (${user.email})`,
+      req,
+    });
+
+    res.json({
+      message: "User password updated successfully",
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
